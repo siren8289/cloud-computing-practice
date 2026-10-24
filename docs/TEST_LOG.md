@@ -4,6 +4,46 @@
 
 ---
 
+## [2026-10-24 20:45] 10단계: Kubernetes Deployment · Service · Self-Healing · RollingUpdate 통합 검증
+- **작업 목적**: kind 로컬 클러스터 기반 Python HTTP 서버 배포, ClusterIP 내부 라우팅, Pod 장애 복구(Self-Healing), 롤링 업데이트 전수 검증
+- **테스트 환경**: macOS (darwin_arm64), Docker Desktop, kind v0.33.0, kubectl v1.37.1
+- **테스트 대상**: `10-kubernetes-lab/app/`, `10-kubernetes-lab/k8s/`, `10-kubernetes-lab/verify.sh`
+- **테스트 명령어**:
+  ```zsh
+  cd 10-kubernetes-lab
+  python3 -m unittest discover -s tests -p "test_*.py" -v
+  docker build -t cloud-api:v1 ./app
+  kind create cluster --name cloud-study --wait 120s
+  kind load docker-image cloud-api:v1 --name cloud-study
+  kubectl --context kind-cloud-study apply -f k8s/
+  kubectl --context kind-cloud-study rollout status deployment/cloud-api --timeout=120s
+  bash verify.sh
+  # 자가 치유 검증
+  POD=$(kubectl --context kind-cloud-study get pods -l app=cloud-api -o jsonpath='{.items[0].metadata.name}')
+  kubectl --context kind-cloud-study delete pod "$POD"
+  kubectl --context kind-cloud-study wait --for=jsonpath='{.status.readyReplicas}'=2 deployment/cloud-api --timeout=120s
+  # 롤링 업데이트 검증
+  docker build -t cloud-api:v2 ./app
+  kind load docker-image cloud-api:v2 --name cloud-study
+  kubectl --context kind-cloud-study set image deployment/cloud-api api=cloud-api:v2
+  kubectl --context kind-cloud-study set env deployment/cloud-api APP_VERSION=v2
+  kubectl --context kind-cloud-study rollout status deployment/cloud-api --timeout=120s
+  kubectl --context kind-cloud-study run version-check --rm -i --restart=Never --image=busybox:1.36 -- wget -qO- http://cloud-api:8081/
+  kind delete cluster --name cloud-study
+  ```
+- **테스트 및 검증 결과**:
+  - [PASS] Python 단위 테스트: 3건 전수 통과 (`Ran 3 tests in 0.532s - OK`)
+  - [PASS] kind 클러스터 프로비저닝: 17초 완료 (`Ready after 17s`)
+  - [PASS] Deployment 배포: 2/2 Ready Pod 기동 확인
+  - [PASS] Service DNS 및 헬스체크: 내부 busybox에서 `http://cloud-api:8081/health` 호출 시 `{"status": "ok", "version": "v1"}` 수신
+  - [PASS] Self-Healing: Pod 1개 강제 삭제 시 즉시 새 Pod 기동되어 2/2 Replicas 정상 복구 확인
+  - [PASS] Rolling Update: 구버전 Pod 순차 종료 및 신규 v2 Pod 기동 확인, `GET /` 응답 `{"service": "cloud-api", "version": "v2"}` 수신
+  - [PASS] 리소스 정리: `kind delete cluster` 정상 종료
+- **미검증 항목**: 없음 (로컬 kind 클러스터 환경에서 전체 오케스트레이션 라이프사이클 100% 실행 검증 완료)
+- **Commit Hash**: `94e7c2c` (`feat(10-k8s): Pod Deployment Service 및 장애 복구 PoC`)
+
+---
+
 ## [2026-10-24 20:30] 09단계: Terraform IaC State 및 네트워크 설계 생명주기 검증
 - **작업 목적**: Terraform HCL 코드 구문 분석, 3대 단위 테스트(`tftest.hcl`), 리소스 State 생성(`apply`), 멱등성 검증, 리소스 완전 파괴(`destroy`) 전수 검증
 - **테스트 환경**: macOS (darwin_arm64), Terraform v1.17.0

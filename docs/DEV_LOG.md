@@ -4,6 +4,54 @@
 
 ---
 
+## [2026-10-24 20:45] feat(10-k8s): Pod Deployment Service 및 장애 복구 PoC
+- **작업 목적**:
+  - kind(v0.33.0) 로컬 Kubernetes 클러스터 상에 Python HTTP 서버(`cloud-api:v1`) 배포
+  - Deployment(replicas: 2, ReadinessProbe, RollingUpdate 전략) 및 ClusterIP Service(`cloud-api:8081`) 구성
+  - 클러스터 내부 클라이언트(busybox)를 통한 Service DNS 및 EndpointSlice 통신 검증
+  - Pod 강제 삭제(`kubectl delete pod`)를 통한 ReplicaSet 기반 자가 치유(Self-Healing, Desired State 복구) 검증
+  - `cloud-api:v2` 빌드 및 롤링 업데이트(`set image`, `set env`)를 통한 무중단 버전 교체 검증
+  - 11단계 Observability & Monitoring 실습을 위한 사전 디렉터리(`11-observability/`) 준비
+- **변경 파일**:
+  - `10-kubernetes-lab/app/main.py` (신규)
+  - `10-kubernetes-lab/app/Dockerfile` (신규)
+  - `10-kubernetes-lab/k8s/deployment.yaml` (신규)
+  - `10-kubernetes-lab/k8s/service.yaml` (신규)
+  - `10-kubernetes-lab/tests/test_app.py` (신규)
+  - `10-kubernetes-lab/verify.sh` (신규)
+  - `10-kubernetes-lab/docs/learning-log.md` (신규)
+  - `10-kubernetes-lab/.gitignore` (신규)
+  - `10-kubernetes-lab/README.md` (신규)
+  - `11-observability/README.md` (신규 - 11단계 준비)
+  - `README.md` (갱신)
+  - `docs/ARCHITECTURE.md` (갱신)
+  - `docs/DEV_LOG.md` (갱신)
+  - `docs/TEST_LOG.md` (갱신)
+- **실행 명령어**:
+  - `python3 -m unittest discover -s tests -p "test_*.py" -v`
+  - `docker build -t cloud-api:v1 ./app`
+  - `kind create cluster --name cloud-study --wait 120s`
+  - `kind load docker-image cloud-api:v1 --name cloud-study`
+  - `kubectl --context kind-cloud-study apply -f k8s/`
+  - `kubectl --context kind-cloud-study rollout status deployment/cloud-api --timeout=120s`
+  - `bash verify.sh`
+  - `kubectl --context kind-cloud-study delete pod "$POD"` (자가 치유 검증)
+  - `docker build -t cloud-api:v2 ./app`
+  - `kind load docker-image cloud-api:v2 --name cloud-study`
+  - `kubectl --context kind-cloud-study set image deployment/cloud-api api=cloud-api:v2`
+  - `kubectl --context kind-cloud-study set env deployment/cloud-api APP_VERSION=v2`
+  - `kind delete cluster --name cloud-study`
+- **검증 및 테스트 결과**:
+  - Python 단위 테스트 3건 전수 통과 (`Ran 3 tests in 0.532s - OK`)
+  - kind 클러스터 생성 성공 (17초 완료) 및 v1 Pod 2개 Ready 상태 기동
+  - `verify.sh`: 클러스터 내부에서 `http://cloud-api:8081/health` 호출 시 HTTP 200 수신 완료
+  - Self-Healing: Pod 삭제 후 신규 Pod 자동 생성되어 2/2 Ready 복구 완료
+  - Rolling Update: 다운타임 없이 v2 Pod 2개 교체 완료 및 `GET /` 호출 시 `version: v2` 확인
+  - 리소스 정리: `kind delete cluster` 정상 완료
+- **Commit Hash**: `94e7c2c` (`feat(10-k8s): Pod Deployment Service 및 장애 복구 PoC`)
+
+---
+
 ## [2026-10-24 20:30] feat(09-terraform): IaC State 및 네트워크 설계 PoC
 - **작업 목적**:
   - Terraform v1.17.0 기반의 `terraform_data` 리소스를 활용한 논리적 네트워크(VPC, Public/Private Subnet) HCL 선언

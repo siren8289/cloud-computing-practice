@@ -487,3 +487,71 @@ flowchart TD
 | **State** | `terraform.tfstate` | 코드와 실제 자원의 매핑 정보를 보관하는 진실의 원천(Source of Truth)으로 Git에 미포함 필수 |
 | **Idempotency** | `No changes.` | 코드가 바뀌지 않았다면 여러 번 `apply`를 수행해도 시스템 상태가 불필요하게 변경되지 않는 성질 |
 | **Automated Test** | `terraform test` | 실제 클라우드 과금 없이 `command = plan` 기반으로 CIDR 일치 및 환경 레이블을 검증 |
+
+
+---
+
+## [2026-10-24] 10단계: Kubernetes Architecture · Deployment · Service · Self-Healing 아키텍처
+
+### 1. 설계 목적
+단일 호스트 컨테이너 실행을 넘어, 분산 클라우드 환경에서 애플리케이션의 **원하는 상태(Desired State)**를 선언하고 이를 자율적으로 유지하는 **Kubernetes 컨테이너 오케스트레이션 아키텍처**를 수립합니다.
+- **자가 치유 (Self-Healing)**: 장애나 인위적 삭제로 Pod가 비정상 종료되더라도 Deployment Controller와 ReplicaSet이 실시간으로 감지하여 새로운 Pod를 즉시 생성, 지정된 복제 수(`replicas: 2`)를 복구합니다.
+- **안정적인 접근 지점 (ClusterIP Service)**: Pod가 생성/삭제될 때마다 내부 IP가 가변적으로 바뀌더라도, 클라이언트는 고정된 내부 도메인 이름(`cloud-api:8081`)을 통해 정상(Ready) 상태인 Pod 풀에 자동으로 부하 분산 접근합니다.
+- **무중단 롤링 업데이트 (RollingUpdate)**: `maxSurge: 1`, `maxUnavailable: 0` 전략을 통해 구버전 Pod를 서비스에서 내리기 전에 신규 버전 Pod가 Readiness Probe를 먼저 통과하도록 보장함으로써 다운타임 없는 버전 업그레이드를 수행합니다.
+
+### 2. Kubernetes 컨트롤러 루프 및 네트워킹 아키텍처 (Mermaid)
+
+```mermaid
+flowchart TD
+    subgraph ControlPlane ["Kubernetes Control Plane (kind-cloud-study)"]
+        APIServer["kube-apiserver"]
+        DeployCtrl["Deployment Controller<br>(cloud-api)"]
+        ReplicaSetCtrl["ReplicaSet Controller<br>(replicas: 2)"]
+    end
+
+    subgraph PodPool ["워커 노드 파드 풀 (Worker Node)"]
+        Pod1["Pod 1: cloud-api-v1<br>(IP: 10.244.0.5)"]
+        Pod2["Pod 2: cloud-api-v1<br>(IP: 10.244.0.6)"]
+        NewPod["새 Pod 3: cloud-api-v1<br>(Self-Healing 자동 복구)"]
+    end
+
+    subgraph ServiceMesh ["서비스 추상화 계층"]
+        CoreDNS["CoreDNS ('cloud-api' 해석)"]
+        ClusterIPSvc["ClusterIP Service: cloud-api:8081<br>(Virtual IP: 10.96.23.57)"]
+        EndpointSlice["EndpointSlice<br>[10.244.0.5, 10.244.0.6]"]
+    end
+
+    subgraph InternalClient ["클러스터 내부 워크로드"]
+        BusyboxClient["busybox (wget http://cloud-api:8081/health)"]
+    end
+
+    APIServer --> DeployCtrl
+    DeployCtrl --> ReplicaSetCtrl
+    ReplicaSetCtrl -->|원하는 상태(2개) 유지| Pod1
+    ReplicaSetCtrl -->|원하는 상태(2개) 유지| Pod2
+
+    Pod1 -->|Readiness Probe /health 통과| EndpointSlice
+    Pod2 -->|Readiness Probe /health 통과| EndpointSlice
+    EndpointSlice --> ClusterIPSvc
+
+    BusyboxClient -->|1. 도메인 'cloud-api' 질의| CoreDNS
+    CoreDNS -->|2. ClusterIP 반환| BusyboxClient
+    BusyboxClient -->|3. HTTP 8081 요청| ClusterIPSvc
+    ClusterIPSvc -->|4. 부하 분산 라우팅| Pod1
+    ClusterIPSvc -->|4. 부하 분산 라우팅| Pod2
+
+    Pod1 -.->|강제 삭제 (kubectl delete)| Terminate["Pod 종료"]
+    ReplicaSetCtrl -->|Desired State 미달 감지| NewPod
+    NewPod -->|Readiness 통과 후 엔드포인트 갱신| EndpointSlice
+```
+
+### 3. Kubernetes 리소스 및 컨트롤러 역할 매트릭스
+
+| 리소스 | 기술 스펙 | 핵심 역할 및 실무 의미 |
+| :--- | :--- | :--- |
+| **Pod** | `app/main.py` (비루트 65534) | Kubernetes의 가장 작은 배포 단위로, 하나 이상의 컨테이너와 네트워크 네임스페이스를 공유 |
+| **Deployment** | `replicas: 2`, `RollingUpdate` | 선언적 방식으로 Pod의 복제 수, 버전 롤아웃 및 롤백을 총괄 관리하는 상위 컨트롤러 |
+| **ReplicaSet** | `cloud-api-7d4cd7d87d` | Deployment가 생성한 저수준 컨트롤러로, 항상 정확히 N개의 Pod가 실행 중인지 감시 |
+| **Readiness Probe** | `httpGet: /health`, `period: 2s` | 컨테이너가 트래픽을 처리할 준비가 되었는지 검사하여, 실패 시 엔드포인트에서 임시 제외 |
+| **ClusterIP Service** | `port: 8081`, `targetPort: 8081` | 클러스터 내부 사설 가상 IP 및 DNS 이름을 제공하여 Pod IP 교체에도 무중단 통신 보장 |
+| **EndpointSlice** | `discovery.k8s.io` | Service와 매핑된 정상 Pod IP 목록을 대규모 클러스터에서도 효율적으로 분산 추적 |

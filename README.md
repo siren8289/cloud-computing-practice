@@ -18,9 +18,9 @@
 | | 06 | IAM · 보안 | 최소 권한 정책 및 SG/NACL 검증 | ✅ 완료 |
 | | 07 | Docker · Compose | 멀티 컨테이너 서비스 DNS 및 네트워크 검증 | ✅ 완료 |
 | | 08 | CI/CD | GitHub Actions 자동 테스트 및 Docker 빌드 | ✅ 완료 |
-| **심화** | 09 | **Terraform** | **IaC State 및 네트워크 설계 생명주기 검증** | ✅ 완료 |
-| | 10 | **Kubernetes** | **로컬 K8s Pod · Deployment · Service 배포** | 🚀 준비 완료 |
-| | 11 | Monitoring | 메트릭·로그 수집 | ⏳ 대기 |
+| **심화** | 09 | Terraform | IaC State 및 네트워크 설계 생명주기 검증 | ✅ 완료 |
+| | 10 | **Kubernetes** | **로컬 K8s Pod · Deployment · Service 배포 및 자가 치유** | ✅ 완료 |
+| | 11 | **Monitoring** | **Prometheus 메트릭 및 관측 가능성(Observability)** | 🚀 준비 완료 |
 | | 12 | GitOps · HA | 배포 상태 및 장애 복구 검증 | ⏳ 대기 |
 
 ---
@@ -48,12 +48,13 @@ cloud-computing-practice/
 ├── 07-compose-network/        # 07단계: Docker Compose 멀티 컨테이너 네트워크 PoC
 ├── 08-ci-actions/             # 08단계: CI/CD GitHub Actions 자동 테스트 및 Docker 빌드 PoC
 ├── 09-terraform-iac/          # 09단계: Terraform IaC State 및 네트워크 라이프사이클 PoC
-│   ├── main.tf                # VPC 및 서브넷 논리적 리소스 명세
-│   ├── variables.tf           # 환경 변수 및 validation 규칙
-│   ├── outputs.tf             # network_plan 출력값 정의
-│   ├── tests/                 # 자동화 테스트 명세 (3개 run 블록)
-│   ├── docs/                  # 학습 기록 (learning-log.md)
-│   └── README.md              # 09단계 실습 안내서
-└── 10-kubernetes/             # 10단계: Kubernetes 아키텍처 및 서비스 실습 준비
-    └── README.md              # 10단계 안내서
+├── 10-kubernetes-lab/         # 10단계: Kubernetes Deployment, Service, Self-Healing PoC
+│   ├── app/                   # Python HTTP 서버 및 비루트 Dockerfile
+│   ├── k8s/                   # Deployment 및 ClusterIP Service YAML 명세
+│   ├── tests/                 # 자동화 단위 테스트 (/health, /, /missing)
+│   ├── docs/                  # 학습 및 실행 로그 (learning-log.md)
+│   ├── verify.sh              # 클러스터 내부 DNS, 엔드포인트 종합 검증 스크립트
+│   └── README.md              # 10단계 실습 안내서
+└── 11-observability/          # 11단계: Observability & Monitoring 실습 준비
+    └── README.md              # 11단계 안내서
 ```
