@@ -4,6 +4,30 @@
 
 ---
 
+## [2026-10-24 17:15] feat(02-linux-process): 서버 프로세스 모니터 PoC 구현 및 HTTP 서버 연동 검증
+- **작업 목적**:
+  - 운영체제(macOS/Linux 커널)의 프로세스 식별 및 자원 관리(PID, PPID, CPU, RSS, STAT) 모니터링 CLI 도구 구현
+  - 01단계 HTTP 서버의 포트(8081) 점유 프로세스(`lsof`) 추적 및 정상 종료(`SIGTERM`) 생명주기 검증
+- **변경 파일**:
+  - `02-linux-process/monitor.py` (신규)
+  - `02-linux-process/test_monitor.py` (신규)
+  - `02-linux-process/README.md` (신규)
+  - `README.md` (갱신)
+  - `docs/ARCHITECTURE.md` (갱신)
+  - `docs/DEV_LOG.md` (갱신)
+  - `docs/TEST_LOG.md` (갱신)
+  - `docs/ERROR_LOG.md` (갱신)
+- **실행 명령어**:
+  - `python3 -m unittest -v test_monitor.py`
+  - `python3 monitor.py`
+  - `lsof -nP -iTCP:8081 -sTCP:LISTEN`
+- **검증 및 테스트 결과**:
+  - 단위 테스트 2건 전수 통과 (`Ran 2 tests in 0.017s - OK`)
+  - HTTP 서버(PID: 55016) 대상 실시간 CPU 0.9%, RSS 10960KiB 확인 및 `SIGTERM` 후 `running: false` 정상 전이 확인
+- **Commit Hash**: `33665a3` (`feat(02-linux-process): 서버 프로세스 모니터 PoC 구현 및 HTTP 서버 연동 검증`)
+
+---
+
 ## [2026-10-24 17:04] feat(01-http-server): HTTP 기초 서버 구현 및 상태 검증 기능 추가
 - **작업 목적**:
   - 클라우드 아키텍처의 기본 통신 규격인 HTTP 서버 구현 및 상태 검증(200 OK, 404 Not Found)

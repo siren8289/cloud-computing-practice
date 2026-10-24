@@ -65,3 +65,54 @@ sequenceDiagram
 | :---: | :--- | :--- | :---: | :--- |
 | `GET` | `/health` | 서버 헬스체크 (상태 정상 여부 확인) | `200 OK` | `{"status": "ok", "service": "cloud-http-lab"}` |
 | `GET` | `/missing` (또는 기타 모든 미등록 경로) | 존재하지 않는 리소스 요청 | `404 Not Found` | `{"error": "not_found"}` |
+
+---
+
+## [2026-10-24] 02단계: Linux 커널 자원 관리 및 서버 프로세스 모니터링 아키텍처
+
+### 1. 설계 목적
+클라우드 가상 머신(EC2) 또는 컨테이너(Docker/K8s) 내부에서 실행되는 서버 애플리케이션의 운영체제 자원 점유 구조(PID, PPID, CPU, RSS 메모리, STAT)를 추적하고, 시스템 호출 및 시그널(SIGTERM)을 통한 정상 종료 프로세스를 검증합니다.
+
+### 2. 프로세스 라이프사이클 및 시스템 자원 상호작용 (Mermaid)
+
+```mermaid
+flowchart TD
+    subgraph OSKernel ["운영체제 커널 (macOS / Linux Kernel)"]
+        Scheduler["CPU 스케줄러 (시분할 다중화)"]
+        MMU["가상 메모리 관리자 (RSS 상주 메모리)"]
+        SocketTable["TCP 소켓 테이블 (:8081 LISTEN)"]
+        ProcTable["프로세스 테이블 (PID, PPID, STAT)"]
+    end
+
+    subgraph ServerProcess ["HTTP 서버 프로세스 (PID: 55016)"]
+        MainThread["메인 실행 스레드 (CloudHandler)"]
+        MemoryHeap["Python 힙 메모리 (약 10.9MB)"]
+    end
+
+    subgraph MonitorTool ["프로세스 모니터 (monitor.py)"]
+        SubprocessCall["subprocess.run('ps -p PID ...')"]
+        Parser["출력 문자열 6필드 파싱 엔진"]
+        JSONOutput["표준 JSON 출력 (running, cpu, rss)"]
+    end
+
+    ServerProcess -->|시스템 호출 (socket, bind)| SocketTable
+    ServerProcess -->|메모리 할당 요청 (malloc)| MMU
+    Scheduler -->|CPU 실행 시간 배분| MainThread
+    SubprocessCall -->|커널 프로세스 테이블 조회| ProcTable
+    ProcTable --> Parser
+    Parser --> JSONOutput
+```
+
+### 3. 프로세스 생명주기 상태 전이도 (State Diagram)
+
+```mermaid
+stateDiagram-v2
+    [*] --> Ready: 프로세스 생성 (fork/execv)
+    Ready --> Running: CPU 스케줄러 디스패치
+    Running --> Ready: 시분할 할당 시간 만료
+    Running --> Waiting: I/O 또는 네트워크 이벤트 대기
+    Waiting --> Ready: I/O 완료 인터럽트 수신
+    Running --> Terminated: SIGTERM/SIGINT 수신 및 자원 반환
+    Terminated --> [*]
+```
+

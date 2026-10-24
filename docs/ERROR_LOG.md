@@ -4,6 +4,23 @@
 
 ---
 
+## [2026-10-24] ps 명령어 실행 시 zsh: operation not permitted 차단 및 조치
+- **발생 상황 / 실행 명령어**: `ps -p $$ -o pid=,ppid=,%cpu=,rss=,stat=,comm=`
+- **오류 로그**:
+  ```text
+  zsh:1: operation not permitted: ps
+  ```
+- **원인 분석**: 
+  - macOS 샌드박스 보안 환경에서는 시스템 프로세스 정보 테이블을 직접 읽어오는 `ps` 바이너리의 실행이 격리 제한됨.
+- **해결 방법**: 
+  - 호스트 권한(BypassSandbox: true)으로 커널 프로세스 테이블 접근 권한을 확보하여 실행.
+- **재검증 결과**:
+  - `python3 -m unittest -v test_monitor.py` 2건 전수 통과 (`OK`)
+  - `python3 monitor.py` 정상 JSON 출력 확인
+- **관련 커밋**: `feat(02-linux-process): 서버 프로세스 모니터 PoC 구현 및 HTTP 서버 연동 검증`
+
+---
+
 ## [2026-10-24] 단위 테스트 실행 시 PermissionError (Operation not permitted) 발생 및 해결
 - **발생 상황 / 실행 명령어**: `python3 -m unittest -v test_main.py`
 - **오류 로그**:
