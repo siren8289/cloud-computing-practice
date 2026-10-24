@@ -4,6 +4,33 @@
 
 ---
 
+## [2026-10-24 19:18] feat(05-network): CIDR subnet routing PoC 구현
+- **작업 목적**:
+  - Python `ipaddress` 모듈 기반 VPC CIDR 및 서브넷 분할 유효성 검증 엔진 구현
+  - 서브넷 간 주소 중첩(Overlap) 및 VPC 범위 이탈(Outside) 예외 방지
+  - 라우트 테이블의 핵심 원리인 최장 접두사 일치(Longest Prefix Match) 알고리즘 모델링
+  - 06단계 IAM 및 보안 실습을 위한 사전 디렉터리(`06-iam-security/`) 준비
+- **변경 파일**:
+  - `05-vpc-network-planner/planner.py` (신규)
+  - `05-vpc-network-planner/test_planner.py` (신규)
+  - `05-vpc-network-planner/README.md` (갱신)
+  - `06-iam-security/README.md` (신규 - 06단계 준비)
+  - `README.md` (갱신)
+  - `docs/ARCHITECTURE.md` (갱신)
+  - `docs/DEV_LOG.md` (갱신)
+  - `docs/TEST_LOG.md` (갱신)
+- **실행 명령어**:
+  - `python3 -m unittest -v test_planner.py`
+  - `python3 planner.py`
+  - `python3 planner.py --destination 10.0.3.15`
+  - `python3 planner.py --destination 8.8.8.8`
+- **검증 및 테스트 결과**:
+  - 단위 테스트 6건 전수 통과 (`Ran 6 tests in 0.000s - OK`)
+  - 3개 목적지 IP(10.0.2.15, 10.0.3.15, 8.8.8.8) 대상 Longest Prefix Match 라우팅 시뮬레이션 성공
+- **Commit Hash**: `c7a945e` (`feat(05-network): CIDR subnet routing PoC 구현`)
+
+---
+
 ## [2026-10-24 17:45] feat(04-docker): 가상화 · Docker 컨테이너 격리 및 볼륨 영속성 PoC 구현
 - **작업 목적**:
   - Python HTTP 서버를 Docker 이미지(`python:3.11-slim`)로 패키징 및 Compose 환경 구성

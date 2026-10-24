@@ -4,6 +4,30 @@
 
 ---
 
+## [2026-10-24 19:18] 05단계: VPC Network Planner 단위 테스트 및 라우팅 시뮬레이션 검증
+- **작업 목적**: CIDR 파싱, 서브넷 용량 산출(AWS 가용 -5개), 주소 중복/범위 이탈 예외 및 Longest Prefix Match 라우팅 검증
+- **테스트 대상**: `05-vpc-network-planner/planner.py`
+- **테스트 코드**: `05-vpc-network-planner/test_planner.py`
+- **테스트 명령어**:
+  ```zsh
+  cd 05-vpc-network-planner
+  python3 -m unittest -v test_planner.py
+  ```
+- **단위 테스트 결과**: 총 6건 중 6건 성공 (Ran 6 tests in 0.000s - OK)
+  - [PASS] `test_valid_plan`: 10.0.1.0/24 기준 total 256개, AWS 가용 251개 정상 산출 확인
+  - [PASS] `test_overlap_rejected`: 10.0.1.0/24와 10.0.1.128/25 중복 시 `ValueError("overlaps")` 정상 발생
+  - [PASS] `test_outside_vpc_rejected`: 10.0.0.0/16 외 10.1.0.0/24 지정 시 `ValueError("outside")` 정상 발생
+  - [PASS] `test_longest_prefix`: /24, /16, /0 다중 매칭 시 최장 접두사 정상 선택 확인
+  - [PASS] `test_no_matching_route`: 매칭 규칙 부재 시 None 반환 확인
+  - [PASS] `test_invalid_network`: 비트 오류 호스트 주소(10.0.1.7/24) 표기 차단 확인
+- **CLI 라우팅 시뮬레이션 결과**:
+  - `python3 planner.py` (`10.0.2.15`): `10.0.2.0/24` -> `specific` 매칭 확인
+  - `python3 planner.py --destination 10.0.3.15`: `10.0.0.0/16` -> `local` 매칭 확인
+  - `python3 planner.py --destination 8.8.8.8`: `0.0.0.0/0` -> `igw` 매칭 확인
+- **Commit Hash**: `c7a945e` (`feat(05-network): CIDR subnet routing PoC 구현`)
+
+---
+
 ## [2026-10-24 17:45] 04단계: Docker 컨테이너 및 볼륨 영속성 단위·통합 검증
 - **작업 목적**: Dockerfile 기반 이미지 빌드, 컨테이너 포트 바인딩, Named Volume 파일 영속성 및 단위 테스트 검증
 - **테스트 대상**: `04-docker-storage/main.py`, `Dockerfile`, `compose.yaml`

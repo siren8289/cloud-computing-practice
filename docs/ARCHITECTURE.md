@@ -227,5 +227,48 @@ sequenceDiagram
     Container2-->>Admin: 200 OK {"note": "persist-me"} 반환 (영속성 검증 성공!)
 ```
 
+---
+
+## [2026-10-24] 05단계: VPC 가상 사설망 · 서브넷 구획 및 라우팅 아키텍처
+
+### 1. 설계 목적
+클라우드 인프라의 근간인 **VPC(Virtual Private Cloud)** 논리망 구축, Public/Private 서브넷 격리 분할, 주소 중복 충돌 방지, 그리고 패킷 라우팅의 최우선 규칙인 **Longest Prefix Match(최장 접두사 일치)** 알고리즘을 파이썬 표준 라이브러리(`ipaddress`)로 모델링하여 검증합니다.
+
+### 2. VPC 및 서브넷 라우팅 구조 (Mermaid)
+
+```mermaid
+flowchart TD
+    subgraph VPC ["AWS Virtual Private Cloud (10.0.0.0/16) - 총 65,536개 IP"]
+        subgraph PublicSubnet ["Public Subnet (10.0.1.0/24) - 가용 251개"]
+            WebServer["웹 서버 인스턴스 (10.0.1.10)"]
+        end
+
+        subgraph PrivateSubnet ["Private Subnet (10.0.2.0/24) - 가용 251개"]
+            Database["DB 인스턴스 (10.0.2.15)"]
+        end
+
+        subgraph RouteTable ["서브넷 라우트 테이블 (Longest Prefix Match)"]
+            R1["10.0.2.0/24 -> Target: specific (우선순위 1위: /24)"]
+            R2["10.0.0.0/16 -> Target: local (우선순위 2위: /16)"]
+            R3["0.0.0.0/0 -> Target: igw (기본 경로: /0)"]
+        end
+    end
+
+    InternetGateway["인터넷 게이트웨이 (IGW)"]
+    PublicSubnet -->|인터넷 통신 (0.0.0.0/0)| RouteTable
+    RouteTable -->|외부 공인 IP (예: 8.8.8.8)| InternetGateway
+    RouteTable -->|내부 VPC 통신 (예: 10.0.3.15)| R2
+    RouteTable -->|특정 전용 서브넷 통신 (예: 10.0.2.15)| R1
+```
+
+### 3. Longest Prefix Match 라우팅 매칭 매트릭스
+
+| 목적지 IP | 매칭되는 라우트 후보들 | 선택된 최장 접두사 (Winner) | 최종 타깃 (Target) | 라우팅 결정 이유 |
+| :---: | :--- | :---: | :---: | :--- |
+| `10.0.2.15` | `0.0.0.0/0` (/0), `10.0.0.0/16` (/16), `10.0.2.0/24` (/24) | `10.0.2.0/24` | `specific` | 일치하는 규칙 중 서브넷 마스크 비트 길이가 가장 김 (/24) |
+| `10.0.3.15` | `0.0.0.0/0` (/0), `10.0.0.0/16` (/16) | `10.0.0.0/16` | `local` | /24는 불일치, /0보다 더 구체적인 /16이 우선 적용됨 |
+| `8.8.8.8` | `0.0.0.0/0` (/0) | `0.0.0.0/0` | `igw` | 내부 사설 IP가 아니므로 기본 경로(Default Gateway)로 전달 |
+
+
 
 

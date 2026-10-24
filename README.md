@@ -13,9 +13,9 @@
 | **기초** | 01 | 클라우드 기초 · HTTP | 로컬 HTTP 서버와 요청 검증 | ✅ 완료 |
 | | 02 | Linux · 프로세스 | 서버 프로세스 및 로그 분석 | ✅ 완료 |
 | | 03 | TCP/IP · DNS | 네트워크 진단 도구 | ✅ 완료 |
-| | 04 | **가상화 · 스토리지** | **Docker 격리 및 데이터 영속성** | ✅ 완료 |
-| **중급** | 05 | **VPC · Subnet** | **CIDR 및 네트워크 구획 검증** | 🚀 준비 완료 |
-| | 06 | IAM · 보안 | 최소 권한 정책 검증 | ⏳ 대기 |
+| | 04 | 가상화 · 스토리지 | Docker 격리 및 데이터 영속성 | ✅ 완료 |
+| **중급** | 05 | **VPC · Subnet** | **CIDR 및 네트워크 구획 검증** | ✅ 완료 |
+| | 06 | **IAM · 보안** | **최소 권한 정책 검증** | 🚀 준비 완료 |
 | | 07 | Docker · Compose | 컨테이너 API 기동 | ⏳ 대기 |
 | | 08 | CI/CD | GitHub Actions 자동 테스트 | ⏳ 대기 |
 | **심화** | 09 | Terraform | 로컬 IaC 구성 검증 | ⏳ 대기 |
@@ -40,11 +40,10 @@ cloud-computing-practice/
 ├── 02-linux-process/          # 02단계: Linux 서버 프로세스 모니터 PoC
 ├── 03-network-diagnostics/    # 03단계: TCP/IP · DNS · HTTP 네트워크 진단 PoC
 ├── 04-docker-storage/         # 04단계: Docker 컨테이너 및 볼륨 영속성 PoC
-│   ├── Dockerfile             # Python 3.11-slim 기반 경량 이미지 빌드 명세
-│   ├── compose.yaml           # 포트 포워딩(8081) 및 Named Volume 정의
-│   ├── main.py                # 헬스체크 및 파일 영속 저장/조회 HTTP API
-│   ├── test_main.py           # 격리 임시 볼륨 단위 테스트 (3건)
-│   └── README.md              # 04단계 실습 안내서
-└── 05-vpc-subnet/             # 05단계: VPC · Subnet · CIDR 네트워크 구획 PoC
-    └── README.md              # 05단계 시작 안내서
+├── 05-vpc-network-planner/    # 05단계: VPC · Subnet · CIDR 네트워크 구획 PoC
+│   ├── planner.py             # CIDR 검증 및 Longest Prefix Match 라우팅 엔진
+│   ├── test_planner.py        # 서브넷 분할 및 충돌 감지 단위 테스트 (6건)
+│   └── README.md              # 05단계 실습 안내서
+└── 06-iam-security/           # 06단계: IAM · Security Group · NACL 보안 PoC
+    └── README.md              # 06단계 시작 안내서
 ```
