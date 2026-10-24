@@ -619,3 +619,75 @@ flowchart TD
 | **요청량 (Traffic)** | `http_requests_total` | `sum(rate(http_requests_total[1m]))` | 시스템에 유입되는 초당 요청 수(RPS) 변화 및 트래픽 폭주 감지 |
 | **오류율 (Errors)** | `http_requests_total{status=~"5.."}` | `sum(rate(...status=~"5.."..)) / rate(total..)` | 서비스 장애 및 백엔드 예외 발생 빈도를 백분율로 추적하여 경보(Alert) 발송 |
 | **지연 시간 (Latency)** | `http_request_duration_seconds` | `histogram_quantile(0.95, sum by (le) (rate(...)))` | 전체 사용자 중 95%가 체감하는 응답 지연 한계선(P95)을 측정하여 병목 구간 탐지 |
+
+
+---
+
+## [2026-10-24] 12단계: GitOps · Argo CD · High Availability (HA) 최종 완결 아키텍처
+
+### 1. 설계 목적
+소프트웨어 개발과 인프라 운영의 궁극적 지향점인 **GitOps(Git as the Single Source of Truth)** 원칙을 완성합니다.
+- **선언형 인프라 동기화**: 수동 `kubectl apply`를 전면 배제하고, 오직 Git Commit/Push를 통해서만 Argo CD가 클러스터의 `gitops-lab` 네임스페이스로 형상을 자동 동기화(Automated Sync)합니다.
+- **2대 복구 메커니즘의 융합**:
+  1. **Kubernetes ReplicaSet Self-Healing**: Pod 프로세스 장애 또는 Pod 삭제 시 원하는 복제 수(`replicas: 2`)를 즉각 재생성하여 Pod 수준 고가용성을 보장.
+  2. **Argo CD Self-Heal**: 운영자의 실수나 비인가된 수동 변경(Drift: `replicas=1` 축소 등) 발생 시, Argo CD가 Git 형상과 Live Cluster 상태의 차이를 감지하여 자동으로 Git의 원래 상태(`replicas: 2`)로 덮어씌워 복원.
+
+### 2. GitOps 컨트롤러 루프 및 Self-Heal 시퀀스 (Mermaid)
+
+```mermaid
+flowchart TD
+    subgraph GitRepository ["Git 원격 저장소 (Single Source of Truth)"]
+        GitApp["12-gitops-argocd/k8s<br>(Desired State: replicas=2)"]
+    end
+
+    subgraph ArgoCDPlane ["Argo CD 오케스트레이터 (argocd 네임스페이스)"]
+        ArgoApp["Application: cloud-gitops-lab<br>(syncPolicy: automated, selfHeal: true)"]
+        DriftDetector["Drift 감지 루프 (Git vs Live State 비교)"]
+    end
+
+    subgraph LiveClusterPlane ["실제 실행 클러스터 (gitops-lab 네임스페이스)"]
+        K8sAPI["kube-apiserver"]
+        LiveDeploy["Deployment: web (Live State)"]
+        ReplicaSetCtrl["ReplicaSet (replicas: 2)"]
+        Pod1["Pod 1: nginx"]
+        Pod2["Pod 2: nginx"]
+        Svc["ClusterIP Service: web:80"]
+    end
+
+    GitApp -->|1. 선언 형상 감시| ArgoApp
+    ArgoApp -->|2. Automated Sync| K8sAPI
+    K8sAPI --> LiveDeploy --> ReplicaSetCtrl
+    ReplicaSetCtrl --> Pod1
+    ReplicaSetCtrl --> Pod2
+    Svc --> Pod1
+    Svc --> Pod2
+
+    %% Drift 발생 및 복구
+    ManualDrift["운영자 수동 변경: kubectl scale --replicas=1"] -.->|임의 수정 (Drift 발생)| LiveDeploy
+    LiveDeploy -.->|Live State 불일치 상태| DriftDetector
+    DriftDetector -->|3. OutOfSync 감지 & selfHeal 트리거| ArgoApp
+    ArgoApp -->|4. replicas=2 자동 재동기화| LiveDeploy
+
+    %% Pod 삭제 및 복구
+    PodLoss["Pod 1 비정상 종료 (kubectl delete pod)"] -.->|Pod 유실| Pod1
+    ReplicaSetCtrl -->|원하는 2개 유지 감지| NewPod["새 Pod 자동 복구"]
+```
+
+### 3. 전체 01~12단계 엔드투엔드 클라우드 엔지니어링 기술 스택 완결도
+
+```mermaid
+flowchart LR
+    subgraph Foundation ["기초 (01~04)"]
+        S1["01 HTTP 서버"] --> S2["02 Linux 프로세스"] --> S3["03 TCP/DNS 진단"] --> S4["04 Docker 스토리지"]
+    end
+
+    subgraph Intermediate ["중급 (05~08)"]
+        S5["05 VPC Subnet"] --> S6["06 IAM 보안 정책"] --> S7["07 Compose 네트워크"] --> S8["08 CI GitHub Actions"]
+    end
+
+    subgraph Advanced ["심화 (09~12)"]
+        S9["09 Terraform IaC"] --> S10["10 Kubernetes K8s"] --> S11["11 Prometheus 관측"] --> S12["12 Argo CD GitOps"]
+    end
+
+    Foundation --> Intermediate --> Advanced
+```

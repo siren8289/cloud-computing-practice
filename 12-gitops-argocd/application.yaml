@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cloud-gitops-lab
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/siren8289/cloud-computing-practice.git
+    targetRevision: main
+    path: 12-gitops-argocd/k8s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: gitops-lab
+  syncPolicy:
+    automated:
+      enabled: true
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

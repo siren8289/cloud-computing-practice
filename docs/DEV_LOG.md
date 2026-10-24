@@ -4,6 +4,39 @@
 
 ---
 
+## [2026-10-24 21:18] feat(12-gitops): Argo CD 자동 동기화 및 복구 PoC
+- **작업 목적**:
+  - GitOps 컨트롤러인 Argo CD(Application 선언: `application.yaml`)를 통한 Kubernetes 인프라 형상 자동 동기화(Automated Sync)
+  - Desired State(Git `12-gitops-argocd/k8s`)와 Live Cluster 상태 간 Drift 감지 및 `selfHeal: true`를 통한 형상 자동 복구 검증
+  - Kustomize 기반 다중 매니페스트(Namespace, Deployment, Service) 번들링 및 정적 구조 단위 테스트(3건) 통과
+  - 전체 12단계 클라우드 컴퓨팅 엔지니어링 실습 로드맵 전 과정 완결
+- **변경 파일**:
+  - `12-gitops-argocd/application.yaml` (신규)
+  - `12-gitops-argocd/k8s/namespace.yaml` (신규)
+  - `12-gitops-argocd/k8s/deployment.yaml` (신규)
+  - `12-gitops-argocd/k8s/service.yaml` (신규)
+  - `12-gitops-argocd/k8s/kustomization.yaml` (신규)
+  - `12-gitops-argocd/tests/test_manifests.py` (신규)
+  - `12-gitops-argocd/docs/learning-log.md` (신규)
+  - `12-gitops-argocd/verify.sh` (신규)
+  - `12-gitops-argocd/.gitignore` (신규)
+  - `12-gitops-argocd/README.md` (신규)
+  - `README.md` (전체 12단계 완결 반영)
+  - `docs/ARCHITECTURE.md` (갱신)
+  - `docs/DEV_LOG.md` (갱신)
+  - `docs/TEST_LOG.md` (갱신)
+- **실행 명령어**:
+  - `python3 -m unittest discover -s tests -p "test_*.py" -v`
+  - `git add 12-gitops-argocd README.md docs/`
+  - `git commit -m "feat(12-gitops): Argo CD 자동 동기화 및 복구 PoC"`
+  - `git push origin main`
+- **검증 및 테스트 결과**:
+  - 매니페스트 정적 단위 테스트 3건 전수 통과 (`Ran 3 tests in 0.001s - OK`)
+  - Git Push 후 Argo CD Application 원격 읽기 및 동기화 기반 준비 완료
+- **Commit Hash**: `PENDING` (`feat(12-gitops): Argo CD 자동 동기화 및 복구 PoC`)
+
+---
+
 ## [2026-10-24 21:10] feat(11-observability): Prometheus Grafana 모니터링 PoC
 - **작업 목적**:
   - Prometheus Python 클라이언트를 활용한 Counter(`http_requests_total`) 및 Histogram(`http_request_duration_seconds`) 메트릭 계측

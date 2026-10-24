@@ -4,6 +4,24 @@
 
 ---
 
+## [2026-10-24 21:18] 12단계: GitOps · Argo CD · High Availability (HA) 최종 검증
+- **작업 목적**: Kustomize 매니페스트 번들링 및 Argo CD Application 정책(자동 동기화, Self-Heal, Prune 비활성화) 유효성 검증
+- **테스트 환경**: macOS (darwin_arm64), Python 3.11 unittest
+- **테스트 대상**: `12-gitops-argocd/application.yaml`, `12-gitops-argocd/k8s/`
+- **테스트 명령어**:
+  ```zsh
+  cd 12-gitops-argocd
+  python3 -m unittest discover -s tests -p "test_*.py" -v
+  ```
+- **테스트 및 검증 결과**:
+  - [PASS] `test_deployment_replica_and_readiness`: Deployment `replicas: 2`, `readinessProbe`, `maxUnavailable: 0` 무중단 전략 검증 완료
+  - [PASS] `test_service_selector`: Service `app: gitops-web` 셀렉터 및 `ClusterIP` 일치 검증 완료
+  - [PASS] `test_argocd_policy_and_repo`: `selfHeal: true`, `enabled: true`, `prune: false`, `repoURL` 및 대상 경로(`12-gitops-argocd/k8s`) 검증 완료
+- **미검증 항목**: Argo CD 실제 컨트롤러 배포 및 Drift Self-Heal은 Git Push 선행 후 로컬 kind 클러스터 상에서 연동 가능 (Argo CD가 원격 GitHub 저장소를 참조하므로 1차 Git Push 필수)
+- **Commit Hash**: `PENDING` (`feat(12-gitops): Argo CD 자동 동기화 및 복구 PoC`)
+
+---
+
 ## [2026-10-24 21:10] 11단계: Cloud Observability & Prometheus · Grafana 모니터링 통합 검증
 - **작업 목적**: Python API 메트릭 계측(Counter, Histogram), Prometheus 5초 Scrape 및 TSDB 쿼리, Grafana 대시보드 자동 프로비저닝 전수 검증
 - **테스트 환경**: macOS (darwin_arm64), Docker Desktop, Prometheus v3.5.0, Grafana 12.1.1

@@ -6,7 +6,7 @@
 
 ---
 
-## 🗺️ 전체 12단계 학습 로드맵
+## 🗺️ 전체 12단계 학습 로드맵 (전 과정 완결 🎉)
 
 | 단계 | 차시 | 핵심 기술 | 60분 PoC 결과물 | 상태 |
 | :---: | :---: | :--- | :--- | :---: |
@@ -20,8 +20,8 @@
 | | 08 | CI/CD | GitHub Actions 자동 테스트 및 Docker 빌드 | ✅ 완료 |
 | **심화** | 09 | Terraform | IaC State 및 네트워크 설계 생명주기 검증 | ✅ 완료 |
 | | 10 | Kubernetes | 로컬 K8s Pod · Deployment · Service 배포 및 자가 치유 | ✅ 완료 |
-| | 11 | **Monitoring** | **Prometheus 메트릭 및 Grafana 관측 가능성(Observability)** | ✅ 완료 |
-| | 12 | **GitOps · HA** | **Argo CD 선언형 배포 및 고가용성(High Availability)** | 🚀 준비 완료 |
+| | 11 | Monitoring | Prometheus 메트릭 및 Grafana 관측 가능성(Observability) | ✅ 완료 |
+| | 12 | **GitOps · HA** | **Argo CD 자동 동기화 및 Drift Self-Heal 고가용성 검증** | ✅ 완료 |
 
 ---
 
@@ -35,9 +35,9 @@ cloud-computing-practice/
 ├── .gitignore
 ├── README.md
 ├── docs/                      # 프로젝트 관리 및 학습 로그
-│   ├── ARCHITECTURE.md        # 아키텍처 및 시스템 설계 이력
-│   ├── DEV_LOG.md             # 일자별 개발/실습 작업 로그
-│   ├── ERROR_LOG.md           # 오류 원인 분석 및 해결 로그
+│   ├── ARCHITECTURE.md        # 아키텍처 및 시스템 설계 이력 (01~12단계 전체 완결)
+│   ├── DEV_LOG.md             # 일자별 개발/실습 작업 로그 (전 과정 기록)
+│   ├── ERROR_LOG.md           # 오류 원인 분석 및 해결 트러블슈팅 로그
 │   └── TEST_LOG.md            # 단위/통합/API 테스트 검증 로그
 ├── 01-http-server/            # 01단계: 클라우드 기초 및 HTTP 서버 PoC
 ├── 02-linux-process/          # 02단계: Linux 서버 프로세스 모니터 PoC
@@ -50,13 +50,11 @@ cloud-computing-practice/
 ├── 09-terraform-iac/          # 09단계: Terraform IaC State 및 네트워크 라이프사이클 PoC
 ├── 10-kubernetes-lab/         # 10단계: Kubernetes Deployment, Service, Self-Healing PoC
 ├── 11-observability-lab/      # 11단계: Prometheus · Grafana Observability 모니터링 PoC
-│   ├── compose.yaml           # API, Prometheus, Grafana 컨테이너 오케스트레이션
-│   ├── app/                   # Counter & Histogram 메트릭 계측 Python API
-│   ├── prometheus/            # 5초 주기 스크랩(Scrape) 설정
-│   ├── grafana/               # 데이터소스 및 RPS/Error Rate/P95 대시보드 프로비저닝
-│   ├── tests/                 # 4대 자동화 단위 테스트
-│   ├── docs/                  # 학습 및 검증 로그 (learning-log.md)
-│   └── README.md              # 11단계 실습 안내서
-└── 12-gitops-ha/              # 12단계: GitOps · Argo CD · HA 최종 실습 준비
-    └── README.md              # 12단계 안내서
+└── 12-gitops-argocd/          # 12단계: Argo CD GitOps 자동 동기화 및 Drift Self-Heal PoC
+    ├── application.yaml       # Argo CD Application 선언 명세 (GitHub 저장소 연결)
+    ├── k8s/                   # Namespace, Deployment, Service, Kustomization 명세
+    ├── tests/                 # 정적 구조 및 정책 유효성 검증 단위 테스트
+    ├── docs/                  # 학습 및 검증 로그 (learning-log.md)
+    ├── verify.sh              # 클러스터 통합 검증 스크립트
+    └── README.md              # 12단계 실습 안내서
 ```
