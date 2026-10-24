@@ -4,6 +4,41 @@
 
 ---
 
+## [2026-10-24 20:10] feat(07-compose): 서비스 DNS 및 컨테이너 네트워크 PoC 구현
+- **작업 목적**:
+  - Docker Compose를 활용한 멀티 컨테이너(`api`, `client`) 선언적 구성 및 사용자 정의 브리지 네트워크(`lab-net`) 격리
+  - Docker 내장 DNS(`127.0.0.11`)를 통한 마이크로서비스 디스커버리(`api` -> `172.25.0.2`) 검증
+  - 컨테이너 헬스체크(`condition: service_healthy`) 의존성 제어 및 호스트 루프백 포트 포워딩(`127.0.0.1:8081`) 검증
+  - 08단계 CI/CD 자동화 실습을 위한 사전 디렉터리(`08-ci-cd/`) 준비
+- **변경 파일**:
+  - `07-compose-network/compose.yaml` (신규)
+  - `07-compose-network/api/Dockerfile` (신규)
+  - `07-compose-network/api/main.py` (신규)
+  - `07-compose-network/client/Dockerfile` (신규)
+  - `07-compose-network/client/check.py` (신규)
+  - `07-compose-network/test_local.py` (신규)
+  - `07-compose-network/README.md` (신규)
+  - `08-ci-cd/README.md` (신규 - 08단계 준비)
+  - `README.md` (갱신)
+  - `docs/ARCHITECTURE.md` (갱신)
+  - `docs/DEV_LOG.md` (갱신)
+  - `docs/TEST_LOG.md` (갱신)
+- **실행 명령어**:
+  - `python3 -m unittest -v test_local.py`
+  - `docker compose up -d --build api`
+  - `docker compose ps`
+  - `curl -i http://127.0.0.1:8081/health`
+  - `docker compose run --rm client`
+  - `docker compose down`
+- **검증 및 테스트 결과**:
+  - 단위 테스트 3건 전수 통과 (`Ran 3 tests in 0.544s - OK`)
+  - `api` 컨테이너 헬스체크 정상 통과 (`Up About a minute (healthy)`)
+  - 호스트 `curl -i http://127.0.0.1:8081/health` 응답 HTTP 200 수신
+  - `client` 컨테이너에서 Docker DNS(`api` -> `172.25.0.2`) 해석, TCP 연결, HTTP 200 통신 전수 검증 완료
+- **Commit Hash**: `1fee1c7` (`feat(07-compose): 서비스 DNS 및 컨테이너 네트워크 PoC 구현`)
+
+---
+
 ## [2026-10-24 19:59] feat(06-security): IAM SG NACL 정책 검증 PoC 구현
 - **작업 목적**:
   - IAM 정책 평가 엔진(명시적 Deny 최우선, 명시적 Allow, 기본 암시적 Deny) 구현

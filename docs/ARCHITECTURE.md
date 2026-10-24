@@ -327,3 +327,52 @@ flowchart TD
 
 
 
+
+
+---
+
+## [2026-10-24] 07단계: Docker Multi-Container Networking & Service Discovery 아키텍처
+
+### 1. 설계 목적
+단일 컨테이너 실행 환경을 넘어 마이크로서비스 아키텍처의 핵심인 **컨테이너 간 격리된 사설 가상 네트워크(User-defined Bridge Network)**와 **이름 기반 주소 해석(Embedded DNS Service Discovery)**, 그리고 **선언적 헬스체크 기반 의존성(`condition: service_healthy`)**을 구성하고 통신 경로를 분리 검증합니다.
+
+### 2. 멀티 컨테이너 네트워크 및 통신 경로 (Mermaid)
+
+```mermaid
+flowchart TD
+    subgraph HostMac ["호스트 머신 (macOS)"]
+        CurlCmd["curl -i http://127.0.0.1:8081/health"]
+        PortProxy["포트 포워딩 프록시 (127.0.0.1:8081 -> 8081)"]
+    end
+
+    subgraph CustomBridgeNet ["Docker 가상 브리지 네트워크: lab-net (172.25.0.0/16)"]
+        subgraph DockerDNS ["Docker 내장 DNS 서버 (127.0.0.11:53)"]
+            DNSLookup["서비스 이름 'api' -> 가상 IP 172.25.0.2 매핑 반환"]
+        end
+
+        subgraph ClientSvc ["client 컨테이너 (진단 클라이언트)"]
+            CheckScript["check.py<br>1. socket.getaddrinfo('api', 8081)<br>2. socket.create_connection()<br>3. urllib.request.urlopen()"]
+        end
+
+        subgraph ApiSvc ["api 컨테이너 (Python ThreadingHTTPServer)"]
+            ApiApp["main.py<br>바인딩: 0.0.0.0:8081<br>IP: 172.25.0.2"]
+            HealthcheckProbe["Healthcheck: urllib.request /health (간격: 2s)"]
+        end
+    end
+
+    CurlCmd -->|호스트 루프백 요청| PortProxy
+    PortProxy -->|브리지 네트워크 포워딩| ApiApp
+    CheckScript -->|1. 도메인 'api' DNS 질의| DNSLookup
+    DNSLookup -->|2. 가상 IP 172.25.0.2 응답| CheckScript
+    CheckScript -->|3. TCP 연결 및 GET /health 요청| ApiApp
+    ApiApp -->|4. HTTP 200 OK + JSON 응답| CheckScript
+```
+
+### 3. 통신 경로 및 보안 격리 비교
+
+| 구분 | 호스트 접근 경로 | 컨테이너 내부 접근 경로 |
+| :--- | :--- | :--- |
+| **목적지 주소** | `http://127.0.0.1:8081/health` | `http://api:8081/health` |
+| **주소 해석 방식** | 호스트 OS `/etc/hosts` 및 루프백 | Docker 내장 DNS (`127.0.0.11`) |
+| **적용 보안 설정** | `ports: ["127.0.0.1:8081:8081"]` (로컬 루프백 한정) | `networks: [lab-net]` (동일 가상 브리지 내 격리) |
+| **특징** | 외부 네트워크 노출 차단, 안전한 로컬 개발 | IP 변경 시에도 서비스 이름(`api`)으로 유연하게 결합 |

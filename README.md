@@ -15,9 +15,9 @@
 | | 03 | TCP/IP · DNS | 네트워크 진단 도구 | ✅ 완료 |
 | | 04 | 가상화 · 스토리지 | Docker 격리 및 데이터 영속성 | ✅ 완료 |
 | **중급** | 05 | VPC · Subnet | CIDR 및 네트워크 구획 검증 | ✅ 완료 |
-| | 06 | **IAM · 보안** | **최소 권한 정책 검증** | ✅ 완료 |
-| | 07 | **Docker · Compose** | **컨테이너 API 기동** | 🚀 준비 완료 |
-| | 08 | CI/CD | GitHub Actions 자동 테스트 | ⏳ 대기 |
+| | 06 | IAM · 보안 | 최소 권한 정책 및 SG/NACL 검증 | ✅ 완료 |
+| | 07 | **Docker · Compose** | **멀티 컨테이너 서비스 DNS 및 네트워크 검증** | ✅ 완료 |
+| | 08 | **CI/CD** | **GitHub Actions 자동 테스트** | 🚀 준비 완료 |
 | **심화** | 09 | Terraform | 로컬 IaC 구성 검증 | ⏳ 대기 |
 | | 10 | Kubernetes | 로컬 K8s 배포 | ⏳ 대기 |
 | | 11 | Monitoring | 메트릭·로그 수집 | ⏳ 대기 |
@@ -42,9 +42,12 @@ cloud-computing-practice/
 ├── 04-docker-storage/         # 04단계: Docker 컨테이너 및 볼륨 영속성 PoC
 ├── 05-vpc-network-planner/    # 05단계: VPC · Subnet · CIDR 네트워크 구획 PoC
 ├── 06-cloud-security/         # 06단계: IAM · Security Group · NACL 보안 PoC
-│   ├── security.py            # IAM/SG/NACL 정책 및 트래픽 평가 시뮬레이터
-│   ├── test_security.py       # 최소 권한 및 상태 저장/비저장 단위 테스트 (8건)
-│   └── README.md              # 06단계 실습 안내서
-└── 07-docker-compose/         # 07단계: Docker Compose 멀티 컨테이너 네트워크 PoC
-    └── README.md              # 07단계 시작 안내서
+├── 07-compose-network/        # 07단계: Docker Compose 멀티 컨테이너 네트워크 PoC
+│   ├── api/                   # HTTP API 서비스 컨테이너 (ThreadingHTTPServer)
+│   ├── client/                # 내부 DNS·TCP·HTTP 네트워크 진단 클라이언트
+│   ├── compose.yaml           # 브리지 네트워크, 헬스체크, 포트 포워딩 정의
+│   ├── test_local.py          # 로컬 통신 및 규격 검증 단위 테스트 (3건)
+│   └── README.md              # 07단계 실습 안내서
+└── 08-ci-cd/                  # 08단계: CI/CD GitHub Actions 자동화 실습 준비
+    └── README.md              # 08단계 안내서
 ```

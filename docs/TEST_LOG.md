@@ -4,6 +4,45 @@
 
 ---
 
+## [2026-10-24 20:10] 07단계: Docker Multi-Container Networking 및 DNS·HTTP 통합 검증
+- **작업 목적**: Docker Compose 환경에서 브리지 네트워크 격리, 내장 DNS(`127.0.0.11`)를 통한 서비스 탐색, 헬스체크 및 호스트 포트 포워딩 검증
+- **테스트 대상**: `07-compose-network/api/main.py`, `07-compose-network/client/check.py`, `07-compose-network/compose.yaml`
+- **테스트 코드**: `07-compose-network/test_local.py`
+- **테스트 명령어**:
+  ```zsh
+  # 1. 로컬 단위 테스트
+  cd 07-compose-network
+  python3 -m unittest -v test_local.py
+
+  # 2. Docker Compose 빌드 및 백그라운드 기동
+  docker compose up -d --build api
+  docker compose ps
+
+  # 3. 호스트에서 curl 검증
+  curl -i http://127.0.0.1:8081/health
+
+  # 4. 클라이언트 컨테이너를 통한 내부 서비스 DNS 및 HTTP 검증
+  docker compose run --rm client
+
+  # 5. 리소스 정리
+  docker compose down
+  ```
+- **단위 테스트 결과**: 총 3건 중 3건 성공 (`Ran 3 tests in 0.544s - OK`)
+  - [PASS] `test_dns_tcp_http`: DNS 해석, TCP 3-Way Handshake, HTTP 200 응답 수신 검증
+  - [PASS] `test_response_json`: API 서버의 JSON 본문 응답 규격(`status: ok`, `service: api`) 검증
+  - [PASS] `test_unknown_route_404`: 미등록 경로(`/missing`) 요청 시 HTTP 404 Not Found 반환 검증
+- **Docker Compose 통합 검증 결과**:
+  - `docker compose ps`: `07-compose-network-api-1` 상태 `Up About a minute (healthy)`, 포트 `127.0.0.1:8081->8081/tcp` 정상 바인딩 확인
+  - `curl -i http://127.0.0.1:8081/health`: `HTTP/1.0 200 OK`, 본문 `{"status": "ok", "service": "api"}` 정상 수신
+  - `docker compose run --rm client`:
+    - DNS 질의(`api`): 가상 IP `["172.25.0.2"]` 수신 확인
+    - TCP 연결: `tcp: true` 확인
+    - HTTP 요청: `http_status: 200`, `body: {"status": "ok", "service": "api"}` 수신 확인
+- **미검증 항목**: 없음 (로컬 단위 테스트 및 Docker Desktop 환경 실제 컨테이너 구동/진단 전수 검증 완료)
+- **Commit Hash**: `1fee1c7` (`feat(07-compose): 서비스 DNS 및 컨테이너 네트워크 PoC 구현`)
+
+---
+
 ## [2026-10-24 19:59] 06단계: IAM · Security Group · NACL 보안 단위·통합 검증
 - **작업 목적**: IAM 최소 권한 정책 평가, Stateful 연결 추적(SG), Stateless 규칙 번호 우선순위 및 임시 포트(NACL) 검증
 - **테스트 대상**: `06-cloud-security/security.py`
