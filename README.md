@@ -14,9 +14,9 @@
 | | 02 | Linux · 프로세스 | 서버 프로세스 및 로그 분석 | ✅ 완료 |
 | | 03 | TCP/IP · DNS | 네트워크 진단 도구 | ✅ 완료 |
 | | 04 | 가상화 · 스토리지 | Docker 격리 및 데이터 영속성 | ✅ 완료 |
-| **중급** | 05 | **VPC · Subnet** | **CIDR 및 네트워크 구획 검증** | ✅ 완료 |
-| | 06 | **IAM · 보안** | **최소 권한 정책 검증** | 🚀 준비 완료 |
-| | 07 | Docker · Compose | 컨테이너 API 기동 | ⏳ 대기 |
+| **중급** | 05 | VPC · Subnet | CIDR 및 네트워크 구획 검증 | ✅ 완료 |
+| | 06 | **IAM · 보안** | **최소 권한 정책 검증** | ✅ 완료 |
+| | 07 | **Docker · Compose** | **컨테이너 API 기동** | 🚀 준비 완료 |
 | | 08 | CI/CD | GitHub Actions 자동 테스트 | ⏳ 대기 |
 | **심화** | 09 | Terraform | 로컬 IaC 구성 검증 | ⏳ 대기 |
 | | 10 | Kubernetes | 로컬 K8s 배포 | ⏳ 대기 |
@@ -41,9 +41,10 @@ cloud-computing-practice/
 ├── 03-network-diagnostics/    # 03단계: TCP/IP · DNS · HTTP 네트워크 진단 PoC
 ├── 04-docker-storage/         # 04단계: Docker 컨테이너 및 볼륨 영속성 PoC
 ├── 05-vpc-network-planner/    # 05단계: VPC · Subnet · CIDR 네트워크 구획 PoC
-│   ├── planner.py             # CIDR 검증 및 Longest Prefix Match 라우팅 엔진
-│   ├── test_planner.py        # 서브넷 분할 및 충돌 감지 단위 테스트 (6건)
-│   └── README.md              # 05단계 실습 안내서
-└── 06-iam-security/           # 06단계: IAM · Security Group · NACL 보안 PoC
-    └── README.md              # 06단계 시작 안내서
+├── 06-cloud-security/         # 06단계: IAM · Security Group · NACL 보안 PoC
+│   ├── security.py            # IAM/SG/NACL 정책 및 트래픽 평가 시뮬레이터
+│   ├── test_security.py       # 최소 권한 및 상태 저장/비저장 단위 테스트 (8건)
+│   └── README.md              # 06단계 실습 안내서
+└── 07-docker-compose/         # 07단계: Docker Compose 멀티 컨테이너 네트워크 PoC
+    └── README.md              # 07단계 시작 안내서
 ```

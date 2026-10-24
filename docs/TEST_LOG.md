@@ -4,6 +4,32 @@
 
 ---
 
+## [2026-10-24 19:59] 06단계: IAM · Security Group · NACL 보안 단위·통합 검증
+- **작업 목적**: IAM 최소 권한 정책 평가, Stateful 연결 추적(SG), Stateless 규칙 번호 우선순위 및 임시 포트(NACL) 검증
+- **테스트 대상**: `06-cloud-security/security.py`
+- **테스트 코드**: `06-cloud-security/test_security.py`
+- **테스트 명령어**:
+  ```zsh
+  cd 06-cloud-security
+  python3 -m unittest -v test_security.py
+  ```
+- **단위 테스트 결과**: 총 8건 중 8건 성공 (Ran 8 tests in 0.001s - OK)
+  - [PASS] `test_iam_allow`: S3 일반 객체 접근 시 ALLOW 확인
+  - [PASS] `test_iam_explicit_deny`: S3 private 경로 접근 시 명시적 거부(EXPLICIT_DENY) 확인
+  - [PASS] `test_iam_implicit_deny`: 권한 없는 S3 삭제 요청 시 암시적 거부(IMPLICIT_DENY) 확인
+  - [PASS] `test_sg_stateful`: Security Group 상태 저장(established=True) 시 아웃바운드 자동 허용 확인
+  - [PASS] `test_sg_cidr`: 허용된 203.0.113.0/24 IP만 통과 확인
+  - [PASS] `test_nacl_order`: 100번 규칙(Deny)이 200번 규칙(Allow)보다 낮은 번호이므로 우선 적용 확인
+  - [PASS] `test_nacl_default_deny`: 일치 규칙 부재 시 기본 차단 확인
+  - [PASS] `test_end_to_end`: 정상 요청, 미허용 IP, 임시 포트 차단 3가지 흐름 검증 확인
+- **CLI 시뮬레이션 결과**:
+  - `python3 security.py`: IAM 정상/거부 및 네트워크 인바운드/아웃바운드 모두 true 확인
+  - `python3 security.py --client-ip 198.51.100.10`: SG 인바운드 차단(`request_allowed: false`) 확인
+  - `python3 security.py --client-port 80`: NACL Stateless 특성에 따른 응답 차단(`response_allowed: false`) 확인
+- **Commit Hash**: `499238f` (`feat(06-security): IAM SG NACL 정책 검증 PoC 구현`)
+
+---
+
 ## [2026-10-24 19:18] 05단계: VPC Network Planner 단위 테스트 및 라우팅 시뮬레이션 검증
 - **작업 목적**: CIDR 파싱, 서브넷 용량 산출(AWS 가용 -5개), 주소 중복/범위 이탈 예외 및 Longest Prefix Match 라우팅 검증
 - **테스트 대상**: `05-vpc-network-planner/planner.py`

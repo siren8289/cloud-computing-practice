@@ -269,6 +269,61 @@ flowchart TD
 | `10.0.3.15` | `0.0.0.0/0` (/0), `10.0.0.0/16` (/16) | `10.0.0.0/16` | `local` | /24는 불일치, /0보다 더 구체적인 /16이 우선 적용됨 |
 | `8.8.8.8` | `0.0.0.0/0` (/0) | `0.0.0.0/0` | `igw` | 내부 사설 IP가 아니므로 기본 경로(Default Gateway)로 전달 |
 
+---
+
+## [2026-10-24] 06단계: 클라우드 보안 3대 요소 (IAM · Security Group · NACL) 아키텍처
+
+### 1. 설계 목적
+클라우드 보안 거버넌스의 3대 축인 **IAM(API 제어 권한 평가)**, **Security Group(인스턴스 레벨 Stateful 방화벽)**, **NACL(서브넷 경계 Stateless 패킷 필터)**의 동작 메커니즘을 모델링하고, 명시적 거부 최우선 원칙 및 상태 저장/비저장 트래픽 제어를 검증합니다.
+
+### 2. 클라우드 다계층 보안 방어선 구조 (Mermaid)
+
+```mermaid
+flowchart TD
+    subgraph ClientLayer ["외부 클라이언트 (IP: 203.0.113.10)"]
+        UserReq["HTTP 요청 (:8081)<br>출발지 임시포트: 55000"]
+        UserResp["HTTP 응답 수신 (:55000)"]
+    end
+
+    subgraph SubnetBoundary ["서브넷 경계 보안 (Stateless)"]
+        NaclIn{"NACL Inbound 규칙<br>낮은 번호순 평가 (Rule 100)"}
+        NaclOut{"NACL Outbound 규칙<br>임시포트(1024~65535) 검사"}
+    end
+
+    subgraph InstanceBoundary ["인스턴스 경계 보안 (Stateful)"]
+        SGIn{"Security Group Inbound<br>허용 규칙 집합 (Allow Only)"}
+        SGConnTracker["연결 추적기 (Connection Tracker)<br>established=True 자동 허용"]
+    end
+
+    subgraph Workload ["웹 서버 워크로드 (:8081)"]
+        HttpApp["Python HTTP Web Server"]
+    end
+
+    UserReq -->|1. 패킷 도착| NaclIn
+    NaclIn -->|Rule 100 Allow| SGIn
+    NaclIn -.->|일치 규칙 없음/Deny| Drop1["패킷 차단 (Drop)"]
+
+    SGIn -->|허용 CIDR 일치| HttpApp
+    SGIn -.->|규칙 없음| Drop2["패킷 차단 (Drop)"]
+
+    HttpApp -->|2. 응답 패킷 전송| SGConnTracker
+    SGConnTracker -->|Stateful: 별도 아웃바운드 규칙 불필요| NaclOut
+    NaclOut -->|Rule 100 Allow (1024~65535)| UserResp
+    NaclOut -.->|아웃바운드 미허용 시 (예: port 80)| Drop3["응답 패킷 차단 (Drop)"]
+```
+
+### 3. IAM 권한 평가 결정 트리 (Decision Tree)
+
+```mermaid
+flowchart TD
+    Request["API 작업 요청 (Action, Resource)"] --> CheckExplicitDeny{"일치하는 명시적 Deny<br>(Explicit Deny)가 있는가?"}
+    CheckExplicitDeny -->|Yes| DenyResult["EXPLICIT_DENY (최종 거부)"]
+    CheckExplicitDeny -->|No| CheckExplicitAllow{"일치하는 명시적 Allow<br>(Explicit Allow)가 있는가?"}
+    CheckExplicitAllow -->|Yes| AllowResult["ALLOW (작업 승인)"]
+    CheckExplicitAllow -->|No| ImplicitDenyResult["IMPLICIT_DENY (기본 차단)"]
+```
+
+
 
 
 

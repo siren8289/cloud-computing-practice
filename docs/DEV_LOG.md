@@ -4,6 +4,33 @@
 
 ---
 
+## [2026-10-24 19:59] feat(06-security): IAM SG NACL 정책 검증 PoC 구현
+- **작업 목적**:
+  - IAM 정책 평가 엔진(명시적 Deny 최우선, 명시적 Allow, 기본 암시적 Deny) 구현
+  - Security Group의 상태 저장(Stateful) 연결 추적 및 CIDR/포트 화이트리스트 검증
+  - Network ACL의 상태 비저장(Stateless) 규칙 번호 우선순위 및 임시 포트(Ephemeral Port) 검증
+  - 07단계 Docker Compose 멀티 컨테이너 실습 사전 폴더(`07-docker-compose/`) 준비
+- **변경 파일**:
+  - `06-cloud-security/security.py` (신규)
+  - `06-cloud-security/test_security.py` (신규)
+  - `06-cloud-security/README.md` (신규)
+  - `07-docker-compose/README.md` (신규 - 07단계 준비)
+  - `README.md` (갱신)
+  - `docs/ARCHITECTURE.md` (갱신)
+  - `docs/DEV_LOG.md` (갱신)
+  - `docs/TEST_LOG.md` (갱신)
+- **실행 명령어**:
+  - `python3 -m unittest -v test_security.py`
+  - `python3 security.py`
+  - `python3 security.py --client-ip 198.51.100.10`
+  - `python3 security.py --client-port 80`
+- **검증 및 테스트 결과**:
+  - 단위 테스트 8건 전수 통과 (`Ran 8 tests in 0.001s - OK`)
+  - IAM 거부/허용 및 SG/NACL 인바운드/아웃바운드 3가지 시나리오 검증 완료
+- **Commit Hash**: `499238f` (`feat(06-security): IAM SG NACL 정책 검증 PoC 구현`)
+
+---
+
 ## [2026-10-24 19:18] feat(05-network): CIDR subnet routing PoC 구현
 - **작업 목적**:
   - Python `ipaddress` 모듈 기반 VPC CIDR 및 서브넷 분할 유효성 검증 엔진 구현
