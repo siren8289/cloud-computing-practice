@@ -4,6 +4,39 @@
 
 ---
 
+## [2026-10-24 20:21] feat(08-ci): GitHub Actions 자동 테스트 및 Docker 빌드
+- **작업 목적**:
+  - GitHub Actions 워크플로(`.github/workflows/cloud-ci.yml`) 작성을 통한 CI(지속적 통합) 자동화 파이프라인 구축
+  - `python-tests` Job(단위 테스트)과 `docker-build` Job(이미지 빌드 및 스모크 테스트) 간 `needs` 의존성(Fail-Fast) 구성
+  - `permissions: contents: read`를 통한 최소 권한 보안 원칙 준수
+  - 09단계 Terraform & IaC 실습을 위한 사전 디렉터리(`09-terraform/`) 준비
+- **변경 파일**:
+  - `.github/workflows/cloud-ci.yml` (신규)
+  - `08-ci-actions/app.py` (신규)
+  - `08-ci-actions/test_app.py` (신규)
+  - `08-ci-actions/Dockerfile` (신규)
+  - `08-ci-actions/README.md` (신규)
+  - `09-terraform/README.md` (신규 - 09단계 준비)
+  - `README.md` (갱신)
+  - `docs/ARCHITECTURE.md` (갱신)
+  - `docs/DEV_LOG.md` (갱신)
+  - `docs/TEST_LOG.md` (갱신)
+  - `docs/ERROR_LOG.md` (갱신)
+- **실행 명령어**:
+  - `python3 -m unittest discover -s 08-ci-actions -p 'test_*.py' -v`
+  - `python3 -m unittest discover -s 07-compose-network -p 'test_local.py' -v`
+  - `docker build -t cloud-ci-lab:local ./08-ci-actions`
+  - `docker run -d --name cloud-ci-test -p 127.0.0.1:18081:8081 cloud-ci-lab:local`
+  - `curl -i http://127.0.0.1:18081/health`
+  - `docker rm -f cloud-ci-test`
+- **검증 및 테스트 결과**:
+  - `08-ci-actions` 단위 테스트 3건 전수 통과 (`Ran 3 tests in 0.530s - OK`)
+  - `07-compose-network` 단위 테스트 3건 전수 통과 (`Ran 3 tests in 0.526s - OK`)
+  - Docker 이미지 빌드 성공 및 컨테이너 스모크 테스트 HTTP 200 OK 수신 확인
+- **Commit Hash**: `c726181` (`feat(08-ci): GitHub Actions 자동 테스트 및 Docker 빌드`)
+
+---
+
 ## [2026-10-24 20:10] feat(07-compose): 서비스 DNS 및 컨테이너 네트워크 PoC 구현
 - **작업 목적**:
   - Docker Compose를 활용한 멀티 컨테이너(`api`, `client`) 선언적 구성 및 사용자 정의 브리지 네트워크(`lab-net`) 격리

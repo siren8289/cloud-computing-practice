@@ -376,3 +376,61 @@ flowchart TD
 | **주소 해석 방식** | 호스트 OS `/etc/hosts` 및 루프백 | Docker 내장 DNS (`127.0.0.11`) |
 | **적용 보안 설정** | `ports: ["127.0.0.1:8081:8081"]` (로컬 루프백 한정) | `networks: [lab-net]` (동일 가상 브리지 내 격리) |
 | **특징** | 외부 네트워크 노출 차단, 안전한 로컬 개발 | IP 변경 시에도 서비스 이름(`api`)으로 유연하게 결합 |
+
+
+---
+
+## [2026-10-24] 08단계: CI/CD Pipeline & GitHub Actions Automation 아키텍처
+
+### 1. 설계 목적
+개발자가 로컬에서 작성한 코드가 원격 저장소(`main` 브랜치)에 반영될 때마다 빌드·테스트를 수동으로 수행하지 않고, **GitHub Actions 클라우드 러너(Runner)를 통해 자동화된 품질 검증(CI)을 강제**하는 아키텍처를 수립합니다.
+- **Fail-Fast 원칙**: Python 단위 테스트가 실패하면 리소스가 많이 소모되는 Docker 이미지 빌드 단계(`needs: python-tests`)로 진입하지 않고 즉시 파이프라인을 중단합니다.
+- **최소 권한 원칙(Least Privilege)**: 워크플로 토큰 권한을 `permissions: contents: read`로 제한하여 잠재적인 보안 사고를 방지합니다.
+
+### 2. CI 파이프라인 워크플로 구조 (Mermaid)
+
+```mermaid
+flowchart TD
+    subgraph Trigger ["트리거 이벤트 (Triggers)"]
+        PushEvent["git push origin main"]
+        PREvent["Pull Request to main"]
+        ManualEvent["workflow_dispatch (수동 트리거)"]
+    end
+
+    subgraph GitHubHostedRunner ["GitHub Actions 클라우드 환경 (ubuntu-latest)"]
+        subgraph Job1 ["Job 1: python-tests"]
+            StepCheckout1["actions/checkout@v6"]
+            StepSetupPy["actions/setup-python@v6 (Python 3.11)"]
+            StepTestApp["08-ci-actions/test_app.py 단위 테스트 (3건)"]
+            StepTestNet["07-compose-network/test_local.py 단위 테스트 (3건)"]
+        end
+
+        subgraph Job2 ["Job 2: docker-build (needs: python-tests)"]
+            StepCheckout2["actions/checkout@v6"]
+            StepDockerBuild["docker build -t cloud-ci-lab:ci ./08-ci-actions"]
+            StepSmokeTest["Smoke Test: 컨테이너 기동 및 헬스체크 폴링 (최대 25회)"]
+            StepComposeBuild["07-compose-network compose build 검증"]
+        end
+    end
+
+    PushEvent --> StepCheckout1
+    PREvent --> StepCheckout1
+    ManualEvent --> StepCheckout1
+
+    StepCheckout1 --> StepSetupPy --> StepTestApp --> StepTestNet
+    StepTestNet -->|성공 (Success)| StepCheckout2
+    StepTestNet -.->|실패 (Fail)| Abort["파이프라인 즉시 중단 (Fail-Fast)"]
+
+    StepCheckout2 --> StepDockerBuild --> StepSmokeTest --> StepComposeBuild
+    StepComposeBuild --> PassResult["최종 CI 성공 (Green Check)"]
+```
+
+### 3. CI 파이프라인 구성 요소 비교 매트릭스
+
+| 구성 요소 | 기술 스펙 | 핵심 역할 및 실무 의의 |
+| :--- | :--- | :--- |
+| **Workflow** | `cloud-ci.yml` | 전체 자동화 파이프라인의 생명주기와 실행 흐름을 선언하는 YAML 명세서 |
+| **Runner** | `ubuntu-latest` | GitHub이 클라우드 상에서 일회성(Ephemeral)으로 프로비저닝하여 작업을 격리 실행하는 가상 머신 |
+| **Job 1** | `python-tests` | 런타임 의존성 구성 및 단위 테스트를 수행하여 코드 로직의 결함을 1차 방어 |
+| **Job 2** | `docker-build` | `needs: python-tests`로 선행 작업 통과 시에만 컨테이너 불변 이미지 패키징 및 스모크 테스트 수행 |
+| **Permissions** | `contents: read` | 불필요한 쓰기/관리자 권한을 배제하여 토큰 탈취 시 저장소 변조 위협을 차단 |

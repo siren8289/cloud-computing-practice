@@ -4,6 +4,42 @@
 
 ---
 
+## [2026-10-24 20:21] 08단계: CI/CD Pipeline & GitHub Actions 자동 테스트 및 빌드 검증
+- **작업 목적**: GitHub Actions 워크플로의 파이프라인(단위 테스트, 의존성 제어, Docker 이미지 빌드, 컨테이너 스모크 테스트) 로컬 및 원격 검증
+- **테스트 대상**: `.github/workflows/cloud-ci.yml`, `08-ci-actions/app.py`, `08-ci-actions/test_app.py`, `08-ci-actions/Dockerfile`
+- **테스트 명령어**:
+  ```zsh
+  # 1. 08단계 단위 테스트
+  python3 -m unittest discover -s 08-ci-actions -p 'test_*.py' -v
+
+  # 2. 07단계 단위 테스트 (CI 워크플로 포함 항목)
+  python3 -m unittest discover -s 07-compose-network -p 'test_local.py' -v
+
+  # 3. Docker 이미지 빌드
+  docker build -t cloud-ci-lab:local ./08-ci-actions
+
+  # 4. 컨테이너 스모크 테스트 및 정리
+  docker run -d --name cloud-ci-test -p 127.0.0.1:18081:8081 cloud-ci-lab:local
+  curl -i http://127.0.0.1:18081/health
+  docker rm -f cloud-ci-test
+  ```
+- **단위 테스트 결과**:
+  - `08-ci-actions/test_app.py`: 총 3건 중 3건 성공 (`Ran 3 tests in 0.530s - OK`)
+    - [PASS] `test_health_status`: `/health` HTTP 200 반환 확인
+    - [PASS] `test_health_json`: JSON 본문 `status: ok`, `service: cloud-ci-lab` 확인
+    - [PASS] `test_unknown_route`: 미등록 경로(`/missing`) 요청 시 HTTP 404 및 `{"error": "not_found"}` 확인
+  - `07-compose-network/test_local.py`: 총 3건 중 3건 성공 (`Ran 3 tests in 0.526s - OK`)
+- **Docker 이미지 빌드 및 스모크 테스트 결과**:
+  - `docker build`: `cloud-ci-lab:local` 이미지 태깅 및 빌드 완료
+  - `curl -i http://127.0.0.1:18081/health`: HTTP 200 OK 및 `{"status": "ok", "service": "cloud-ci-lab"}` 정상 수신
+- **원격 GitHub Actions 검증 항목**:
+  - [x] 워크플로 YAML 구문 검증 완료
+  - [x] 로컬 단위 테스트 및 스모크 테스트 전수 통과
+  - [ ] GitHub Actions 원격 러너 실행 결과 (Git Push 후 원격 실행 상태 확인 예정)
+- **Commit Hash**: `c726181` (`feat(08-ci): GitHub Actions 자동 테스트 및 Docker 빌드`)
+
+---
+
 ## [2026-10-24 20:10] 07단계: Docker Multi-Container Networking 및 DNS·HTTP 통합 검증
 - **작업 목적**: Docker Compose 환경에서 브리지 네트워크 격리, 내장 DNS(`127.0.0.11`)를 통한 서비스 탐색, 헬스체크 및 호스트 포트 포워딩 검증
 - **테스트 대상**: `07-compose-network/api/main.py`, `07-compose-network/client/check.py`, `07-compose-network/compose.yaml`

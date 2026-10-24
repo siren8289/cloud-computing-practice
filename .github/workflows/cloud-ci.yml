@@ -1,0 +1,86 @@
+name: Cloud Computing CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python-tests:
+    name: Python unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Test CI demo application
+        run: |
+          python -m unittest discover \
+            -s 08-ci-actions \
+            -p 'test_*.py' -v
+
+      - name: Test networking lab if available
+        shell: bash
+        run: |
+          if [[ -f 07-compose-network/test_local.py ]]; then
+            python -m unittest discover \
+              -s 07-compose-network \
+              -p 'test_local.py' -v
+          else
+            echo "Previous lab not found; skipping."
+          fi
+
+  docker-build:
+    name: Docker image build
+    needs: python-tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Build CI demo image
+        run: |
+          docker build -t cloud-ci-lab:ci ./08-ci-actions
+
+      - name: Smoke test built image
+        run: |
+          docker run -d --name cloud-ci-test \
+            -p 127.0.0.1:18081:8081 cloud-ci-lab:ci
+          trap 'docker rm -f cloud-ci-test >/dev/null 2>&1 || true' EXIT
+          python3 - <<'PY'
+import time
+import urllib.request
+
+for i in range(25):
+    try:
+        with urllib.request.urlopen(
+            'http://127.0.0.1:18081/health', timeout=2
+        ) as response:
+            assert response.status == 200
+            print(response.read().decode())
+            break
+    except Exception:
+        if i == 24:
+            raise
+        time.sleep(0.5)
+PY
+
+      - name: Build previous networking images
+        shell: bash
+        run: |
+          if [[ -f 07-compose-network/compose.yaml ]]; then
+            docker compose \
+              -f 07-compose-network/compose.yaml build
+          else
+            echo "Previous lab not found; skipping."
+          fi

@@ -4,6 +4,23 @@
 
 ---
 
+## [2026-10-24] Docker 컨테이너 구동 직후 스모크 테스트 시 RemoteDisconnected 발생 및 해결
+- **발생 상황 / 실행 명령어**: `docker run -d ... && python3 -c "urllib.request.urlopen(...)"`
+- **오류 로그**:
+  ```text
+  http.client.RemoteDisconnected: Remote end closed connection without response
+  ```
+- **원인 분석**:
+  - `docker run -d` 명령어는 백그라운드 컨테이너 생성이 완료되는 즉시 셸로 제어를 반환하지만, 컨테이너 내부의 Python 프로세스가 실행되고 소켓 포트(`0.0.0.0:8081`)를 `listen()` 상태로 전환하기까지 약간의 부팅 지연(Cold Start, 수백 밀리초)이 존재합니다.
+  - 이 짧은 시간차 동안 클라이언트가 즉시 HTTP 요청을 보내면 소켓 연결이 비정상 종료(RemoteDisconnected)됩니다.
+- **해결 방법**:
+  - CI 워크플로 스크립트(`.github/workflows/cloud-ci.yml`)와 동일하게 재시도 및 백오프 폴링 로직(`for i in range(25): try ... time.sleep(0.5)`)을 적용하여 컨테이너가 요청을 수신할 준비가 될 때까지 안전하게 대기하도록 구성.
+- **재검증 결과**:
+  - 컨테이너 구동 후 `curl -i http://127.0.0.1:18081/health` 실행 시 `HTTP/1.0 200 OK` 정상 수신 확인
+- **관련 커밋**: `feat(08-ci): GitHub Actions 자동 테스트 및 Docker 빌드`
+
+---
+
 ## [2026-10-24] ps 명령어 실행 시 zsh: operation not permitted 차단 및 조치
 - **발생 상황 / 실행 명령어**: `ps -p $$ -o pid=,ppid=,%cpu=,rss=,stat=,comm=`
 - **오류 로그**:
