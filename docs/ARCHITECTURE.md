@@ -116,3 +116,49 @@ stateDiagram-v2
     Terminated --> [*]
 ```
 
+---
+
+## [2026-10-24] 03단계: TCP/IP · DNS · HTTP 계층형 네트워크 진단 아키텍처
+
+### 1. 설계 목적
+클라우드 인프라의 마이크로서비스 또는 클라이언트가 원격 서버와 통신할 때 거치는 **3대 네트워크 계층(DNS 주소 해석 → TCP 3-Way Handshake 세션 수립 → HTTP 요청/응답)**을 프로그래밍 방식으로 분리하여 장애 원인(도메인 미등록 vs 포트 미오픈/방화벽 vs 경로 404)을 정확하게 판별합니다.
+
+### 2. 계층별 네트워크 진단 아키텍처 (Mermaid)
+
+```mermaid
+flowchart TD
+    subgraph DiagnosticTool ["네트워크 진단 도구 (diagnose.py)"]
+        CLI["사용자 CLI 인자 (host, port, path)"]
+        DnsStep["1단계: DNS 해석 (getaddrinfo)"]
+        TcpStep["2단계: TCP 연결 (create_connection)"]
+        HttpStep["3단계: HTTP 통신 (urlopen)"]
+        Report["통합 JSON 진단 리포트"]
+    end
+
+    subgraph NetworkLayers ["인터넷 / 로컬 네트워크 계층"]
+        DNS["DNS 네임서버 (도메인 -> IP 변환)"]
+        Socket["TCP 계층 (SYN -> SYN-ACK -> ACK)"]
+        Server["HTTP 웹 서버 (01-http-server)"]
+    end
+
+    CLI --> DnsStep
+    DnsStep -->|도메인 주소 질의| DNS
+    DNS -->|IP 주소 목록 반환| DnsStep
+    DnsStep -->|성공 시 IP 전달| TcpStep
+    TcpStep -->|TCP 3-Way Handshake 시도| Socket
+    Socket -->|연결 성공| TcpStep
+    TcpStep -->|소켓 연결 성공 시| HttpStep
+    HttpStep -->|GET /health 요청| Server
+    Server -->|200 OK / 404 Not Found| HttpStep
+    HttpStep --> Report
+```
+
+### 3. 계층별 장애 판별 매트릭스 (Troubleshooting Hierarchy)
+
+| 진단 단계 | 점검 기술 | 성공 시 결과 | 실패 시 에러 및 원인 분석 |
+| :---: | :---: | :--- | :--- |
+| **1단계: DNS** | `socket.getaddrinfo()` | `ok: true`, IP 목록 반환 | `gaierror`: 잘못된 도메인명, 로컬 DNS 설정 오류 |
+| **2단계: TCP** | `socket.create_connection()` | `ok: true`, 포트 연결 성공 | `ConnectionRefusedError`: 서버 프로세스 미구동, 방화벽 차단<br>`TimeoutError`: 네트워크 라우팅 지연, 패킷 드롭 |
+| **3단계: HTTP** | `urllib.request.urlopen()` | `ok: true`, Status 200 | `HTTP 404`: 경로는 틀렸으나 네트워크 연결은 완벽히 정상<br>`HTTP 500`: 백엔드 서버 내부 애플리케이션 버그 |
+
+

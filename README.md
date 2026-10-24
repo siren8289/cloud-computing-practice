@@ -11,8 +11,8 @@
 | 단계 | 차시 | 핵심 기술 | 60분 PoC 결과물 | 상태 |
 | :---: | :---: | :--- | :--- | :---: |
 | **기초** | 01 | 클라우드 기초 · HTTP | 로컬 HTTP 서버와 요청 검증 | ✅ 완료 |
-| | 02 | **Linux · 프로세스** | **서버 프로세스 및 로그 분석** | 🚀 진행 중 |
-| | 03 | TCP/IP · DNS | 네트워크 진단 도구 | ⏳ 대기 |
+| | 02 | Linux · 프로세스 | 서버 프로세스 및 로그 분석 | ✅ 완료 |
+| | 03 | **TCP/IP · DNS** | **네트워크 진단 도구** | 🚀 진행 중 |
 | | 04 | 가상화 · 스토리지 | Docker 격리 및 데이터 영속성 | ⏳ 대기 |
 | **중급** | 05 | VPC · Subnet | CIDR 및 네트워크 구획 검증 | ⏳ 대기 |
 | | 06 | IAM · 보안 | 최소 권한 정책 검증 | ⏳ 대기 |
@@ -36,12 +36,16 @@ cloud-computing-practice/
 │   ├── DEV_LOG.md             # 일자별 개발/실습 작업 로그
 │   ├── ERROR_LOG.md           # 오류 원인 분석 및 해결 로그
 │   └── TEST_LOG.md            # 단위/통합/API 테스트 검증 로그
-└── 01-http-server/            # 01단계: 클라우드 기초 및 HTTP 서버 PoC
-    ├── main.py                # HTTP 서버 메인 애플리케이션
-    ├── test_main.py           # 무중단 격리 단위 테스트
-    └── README.md              # 01단계 실습 안내서
-└── 02-linux-process/          # 02단계: Linux 서버 프로세스 모니터 PoC
-    ├── monitor.py             # 프로세스 자원(CPU, RSS, STAT) 모니터링 CLI
-    ├── test_monitor.py        # 프로세스 상태 파싱 단위 테스트
-    └── README.md              # 02단계 실습 안내서
+├── 01-http-server/            # 01단계: 클라우드 기초 및 HTTP 서버 PoC
+│   ├── main.py                # HTTP 서버 메인 애플리케이션
+│   ├── test_main.py           # 무중단 격리 단위 테스트
+│   └── README.md              # 01단계 실습 안내서
+├── 02-linux-process/          # 02단계: Linux 서버 프로세스 모니터 PoC
+│   ├── monitor.py             # 프로세스 자원(CPU, RSS, STAT) 모니터링 CLI
+│   ├── test_monitor.py        # 프로세스 상태 파싱 단위 테스트
+│   └── README.md              # 02단계 실습 안내서
+└── 03-network-diagnostics/    # 03단계: TCP/IP · DNS · HTTP 네트워크 진단 PoC
+    ├── diagnose.py            # 계층별 네트워크 진단 CLI 도구
+    ├── test_diagnose.py       # DNS·TCP·HTTP 단계별 단위 테스트
+    └── README.md              # 03단계 실습 안내서
 ```

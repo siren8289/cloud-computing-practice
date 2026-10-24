@@ -4,6 +4,31 @@
 
 ---
 
+## [2026-10-24 17:28] feat(03-network-diagnostics): DNS·TCP·HTTP 네트워크 진단 CLI 및 검증 PoC 구현
+- **작업 목적**:
+  - DNS 호스트명 주소 해석(`socket.getaddrinfo`), TCP 소켓 연결(`socket.create_connection`), HTTP 통신(`urllib.request.urlopen`)의 3단계 계층별 진단 도구 구현
+  - 정상 응답(200), 미등록 경로(404), 미개방 포트(ConnectionRefused), 외부 도메인(DNS 해석)의 에러 케이스 구분 검증
+- **변경 파일**:
+  - `03-network-diagnostics/diagnose.py` (신규)
+  - `03-network-diagnostics/test_diagnose.py` (신규)
+  - `03-network-diagnostics/README.md` (신규)
+  - `README.md` (갱신)
+  - `docs/ARCHITECTURE.md` (갱신)
+  - `docs/DEV_LOG.md` (갱신)
+  - `docs/TEST_LOG.md` (갱신)
+- **실행 명령어**:
+  - `python3 -m unittest -v test_diagnose.py`
+  - `python3 diagnose.py 127.0.0.1 --port 8081 --path /health`
+  - `python3 diagnose.py 127.0.0.1 --port 8081 --path /missing`
+  - `python3 diagnose.py 127.0.0.1 --port 9999`
+  - `python3 diagnose.py example.com --port 80 --path /`
+- **검증 및 테스트 결과**:
+  - 단위 테스트 5건 전수 통과 (`Ran 5 tests in 0.199s - OK`)
+  - 로컬 HTTP 서버 및 닫힌 포트, 외부 도메인 4가지 시나리오 완벽 검증
+- **Commit Hash**: `835c480` (`feat(03-network-diagnostics): DNS·TCP·HTTP 네트워크 진단 CLI 및 검증 PoC 구현`)
+
+---
+
 ## [2026-10-24 17:15] feat(02-linux-process): 서버 프로세스 모니터 PoC 구현 및 HTTP 서버 연동 검증
 - **작업 목적**:
   - 운영체제(macOS/Linux 커널)의 프로세스 식별 및 자원 관리(PID, PPID, CPU, RSS, STAT) 모니터링 CLI 도구 구현

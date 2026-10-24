@@ -4,6 +4,30 @@
 
 ---
 
+## [2026-10-24 17:28] 03단계: DNS·TCP·HTTP 네트워크 진단 단위 테스트 및 통합 검증
+- **작업 목적**: 호스트명 해석(DNS), 포트 연결(TCP), 애플리케이션 응답(HTTP)의 계층별 진단 정확도 검증
+- **테스트 대상**: `03-network-diagnostics/diagnose.py`
+- **테스트 코드**: `03-network-diagnostics/test_diagnose.py`
+- **테스트 명령어**:
+  ```zsh
+  cd 03-network-diagnostics
+  python3 -m unittest -v test_diagnose.py
+  ```
+- **단위 테스트 결과**: 총 5건 중 5건 성공 (Ran 5 tests in 0.199s - OK)
+  - [PASS] `test_dns`: `localhost` 호스트명을 `127.0.0.1`로 정상 해석
+  - [PASS] `test_tcp`: 테스트 서버 소켓 포트로 TCP 3-Way Handshake 수립 성공
+  - [PASS] `test_http_200`: 정상 헬스체크 경로(`/health`) 요청 시 200 OK 및 JSON 바디 수신
+  - [PASS] `test_http_404`: 미등록 경로(`/missing`) 요청 시 404 Not Found 및 에러 객체 파싱
+  - [PASS] `test_end_to_end`: `diagnose()` 통합 함수에서 3단계 전체 성공 검증
+- **실환경 연동 검증 결과**:
+  - `python3 diagnose.py 127.0.0.1 --port 8081 --path /health`: 3단계 전체 성공
+  - `python3 diagnose.py 127.0.0.1 --port 8081 --path /missing`: TCP 성공, HTTP 404 정상 분기
+  - `python3 diagnose.py 127.0.0.1 --port 9999`: TCP 연결 거부(`[Errno 61] Connection refused`) 정확 감지
+  - `python3 diagnose.py example.com --port 80 --path /`: 외부 공인 DNS 주소 해석(104.20.23.154 등) 및 HTTP 200 성공
+- **Commit Hash**: `835c480` (`feat(03-network-diagnostics): DNS·TCP·HTTP 네트워크 진단 CLI 및 검증 PoC 구현`)
+
+---
+
 ## [2026-10-24 17:15] 02단계: 서버 프로세스 모니터 단위 테스트 및 HTTP 서버 연동 검증
 - **작업 목적**: 프로세스 모니터(`monitor.py`)의 정상 PID 파싱 및 종료 상태 판별 정확도 검증
 - **테스트 대상**: `02-linux-process/monitor.py`
