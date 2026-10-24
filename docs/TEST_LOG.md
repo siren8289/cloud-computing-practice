@@ -4,6 +4,30 @@
 
 ---
 
+## [2026-10-24 17:45] 04단계: Docker 컨테이너 및 볼륨 영속성 단위·통합 검증
+- **작업 목적**: Dockerfile 기반 이미지 빌드, 컨테이너 포트 바인딩, Named Volume 파일 영속성 및 단위 테스트 검증
+- **테스트 대상**: `04-docker-storage/main.py`, `Dockerfile`, `compose.yaml`
+- **테스트 코드**: `04-docker-storage/test_main.py`
+- **테스트 명령어**:
+  ```zsh
+  cd 04-docker-storage
+  python3 -m unittest -v test_main.py
+  ```
+- **단위 테스트 결과**: 총 3건 중 3건 성공 (Ran 3 tests in 0.585s - OK)
+  - [PASS] `test_health`: GET `/health` 호출 시 200 OK 및 서비스명(`cloud-docker-lab`) 확인
+  - [PASS] `test_note_roundtrip`: POST `/note` (201 Created) 저장 후 GET `/note` (200 OK) 일치 확인
+  - [PASS] `test_bad_note`: 필드 누락 페이로드 전송 시 400 Bad Request 확인
+- **Docker 컨테이너 및 볼륨 실환경 검증 결과**:
+  - `docker compose up -d --build`: 이미지 빌드 및 컨테이너(`04-docker-storage-api-1`), 볼륨(`notes_data`) 정상 생성
+  - 검증 A: `curl -i http://127.0.0.1:8081/health` -> HTTP 200 OK 수신
+  - 검증 B: `curl -i -X POST .../note -d '{"note":"persist-me"}'` -> HTTP 201 Created 수신
+  - 검증 C-1: `docker compose down` -> 컨테이너 및 네트워크 완전 삭제
+  - 검증 C-2: `docker compose up -d` -> 새 컨테이너 기동
+  - 검증 C-3: `curl -i http://127.0.0.1:8081/note` -> `HTTP 200 OK`, `{"note": "persist-me"}` 데이터 복원 완벽 확인
+- **Commit Hash**: `1f36e8b` (`feat(04-docker): 가상화 · Docker 컨테이너 격리 및 볼륨 영속성 PoC 구현`)
+
+---
+
 ## [2026-10-24 17:28] 03단계: DNS·TCP·HTTP 네트워크 진단 단위 테스트 및 통합 검증
 - **작업 목적**: 호스트명 해석(DNS), 포트 연결(TCP), 애플리케이션 응답(HTTP)의 계층별 진단 정확도 검증
 - **테스트 대상**: `03-network-diagnostics/diagnose.py`

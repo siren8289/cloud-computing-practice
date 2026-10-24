@@ -161,4 +161,71 @@ flowchart TD
 | **2단계: TCP** | `socket.create_connection()` | `ok: true`, 포트 연결 성공 | `ConnectionRefusedError`: 서버 프로세스 미구동, 방화벽 차단<br>`TimeoutError`: 네트워크 라우팅 지연, 패킷 드롭 |
 | **3단계: HTTP** | `urllib.request.urlopen()` | `ok: true`, Status 200 | `HTTP 404`: 경로는 틀렸으나 네트워크 연결은 완벽히 정상<br>`HTTP 500`: 백엔드 서버 내부 애플리케이션 버그 |
 
+---
+
+## [2026-10-24] 04단계: 가상화 · Docker 컨테이너 격리 및 스토리지 영속성 아키텍처
+
+### 1. 설계 목적
+운영체제 레벨 가상화 기술인 Docker를 활용하여 01단계의 HTTP 서버를 불변(Immutable) 이미지로 패키징하고, 컨테이너 프로세스가 종료·삭제되어도 사용자 데이터(`note.txt`)가 보존되도록 **Docker Named Volume 마운트 아키텍처**를 구성 및 검증합니다.
+
+### 2. Docker 포트 매핑 및 볼륨 마운트 구조 (Mermaid)
+
+```mermaid
+flowchart TD
+    subgraph HostMac ["macOS 호스트 (127.0.0.1)"]
+        CurlClient["curl CLI / 웹 브라우저"]
+        HostPort["호스트 바인딩 포트 (:8081)"]
+        subgraph DockerStorageEngine ["Docker 스토리지 서브시스템"]
+            NamedVol["Docker Named Volume (notes_data)<br>물리 경로: /var/lib/docker/volumes/..."]
+        end
+    end
+
+    subgraph ContainerSpace ["Docker 격리 컨테이너 (04-docker-storage-api-1)"]
+        ContainerPort["컨테이너 소켓 (:8081)"]
+        PythonServer["Python HTTP Server (main.py)"]
+        subgraph ImageLayers ["컨테이너 파일시스템 계층"]
+            ROLayer["Image 레이어 (python:3.11-slim + code) - Read Only"]
+            RWLayer["Container 레이어 (임시 쓰기 계층) - Read/Write"]
+        end
+        MountPoint["마운트 지점: /data/note.txt"]
+    end
+
+    CurlClient -->|http://127.0.0.1:8081/note| HostPort
+    HostPort -->|Docker NAT 브리지 포워딩| ContainerPort
+    ContainerPort --> PythonServer
+    PythonServer -->|POST /note 파일 쓰기| MountPoint
+    MountPoint -.->|볼륨 바인드 마운트 동기화| NamedVol
+```
+
+### 3. 컨테이너 삭제 및 재생성 시 데이터 영속성 라이프사이클
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Admin as 사용자 (Mac Terminal)
+    participant Compose as Docker Compose
+    participant Container1 as 컨테이너 #1 (api-1)
+    participant Volume as Named Volume (notes_data)
+    participant Container2 as 컨테이너 #2 (새로운 api-1)
+
+    Admin->>Compose: docker compose up -d --build
+    Compose->>Volume: Volume 'notes_data' 생성
+    Compose->>Container1: Container #1 기동 (Volume /data 마운트)
+    Admin->>Container1: POST /note {"note": "persist-me"}
+    Container1->>Volume: /data/note.txt 파일 기록 (영구 저장)
+    
+    Note over Admin,Container1: [컨테이너 파괴 단계]
+    Admin->>Compose: docker compose down
+    Compose->>Container1: Container #1 강제 종료 및 삭제
+    Note over Volume: 볼륨 'notes_data'는 삭제되지 않고 호스트에 온전히 보존됨!
+
+    Note over Admin,Container2: [새 컨테이너 기동 및 데이터 복원 확인]
+    Admin->>Compose: docker compose up -d
+    Compose->>Container2: 완전히 새로운 컨테이너 #2 생성 (동일 볼륨 마운트)
+    Admin->>Container2: GET /note 요청
+    Container2->>Volume: /data/note.txt 조회
+    Container2-->>Admin: 200 OK {"note": "persist-me"} 반환 (영속성 검증 성공!)
+```
+
+
 

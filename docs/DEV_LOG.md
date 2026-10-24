@@ -4,6 +4,36 @@
 
 ---
 
+## [2026-10-24 17:45] feat(04-docker): 가상화 · Docker 컨테이너 격리 및 볼륨 영속성 PoC 구현
+- **작업 목적**:
+  - Python HTTP 서버를 Docker 이미지(`python:3.11-slim`)로 패키징 및 Compose 환경 구성
+  - 호스트 포트 포워딩(`127.0.0.1:8081:8081`) 및 Docker Named Volume(`notes_data:/data`) 마운트
+  - 컨테이너 완전 삭제(`docker compose down`) 후 재생성 시에도 데이터(`persist-me`)가 온전히 보존되는 영속성 검증
+- **변경 파일**:
+  - `04-docker-storage/Dockerfile` (신규)
+  - `04-docker-storage/compose.yaml` (신규)
+  - `04-docker-storage/main.py` (신규)
+  - `04-docker-storage/test_main.py` (신규)
+  - `04-docker-storage/README.md` (신규)
+  - `05-vpc-subnet/README.md` (신규 - 05단계 준비 폴더)
+  - `README.md` (갱신)
+  - `docs/ARCHITECTURE.md` (갱신)
+  - `docs/DEV_LOG.md` (갱신)
+  - `docs/TEST_LOG.md` (갱신)
+- **실행 명령어**:
+  - `python3 -m unittest -v test_main.py`
+  - `docker compose up -d --build`
+  - `curl -i http://127.0.0.1:8081/health`
+  - `curl -i -X POST http://127.0.0.1:8081/note -d '{"note":"persist-me"}'`
+  - `docker compose down && docker compose up -d`
+  - `curl -i http://127.0.0.1:8081/note`
+- **검증 및 테스트 결과**:
+  - 단위 테스트 3건 전수 통과 (`Ran 3 tests in 0.585s - OK`)
+  - 컨테이너 재생성 후 영속 데이터(`persist-me`) 정상 조회 확인 완료
+- **Commit Hash**: `1f36e8b` (`feat(04-docker): 가상화 · Docker 컨테이너 격리 및 볼륨 영속성 PoC 구현`)
+
+---
+
 ## [2026-10-24 17:28] feat(03-network-diagnostics): DNS·TCP·HTTP 네트워크 진단 CLI 및 검증 PoC 구현
 - **작업 목적**:
   - DNS 호스트명 주소 해석(`socket.getaddrinfo`), TCP 소켓 연결(`socket.create_connection`), HTTP 통신(`urllib.request.urlopen`)의 3단계 계층별 진단 도구 구현
