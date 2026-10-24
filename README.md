@@ -17,9 +17,9 @@
 | **중급** | 05 | VPC · Subnet | CIDR 및 네트워크 구획 검증 | ✅ 완료 |
 | | 06 | IAM · 보안 | 최소 권한 정책 및 SG/NACL 검증 | ✅ 완료 |
 | | 07 | Docker · Compose | 멀티 컨테이너 서비스 DNS 및 네트워크 검증 | ✅ 완료 |
-| | 08 | **CI/CD** | **GitHub Actions 자동 테스트 및 Docker 빌드** | ✅ 완료 |
-| **심화** | 09 | **Terraform** | **로컬 IaC 구성 검증** | 🚀 준비 완료 |
-| | 10 | Kubernetes | 로컬 K8s 배포 | ⏳ 대기 |
+| | 08 | CI/CD | GitHub Actions 자동 테스트 및 Docker 빌드 | ✅ 완료 |
+| **심화** | 09 | **Terraform** | **IaC State 및 네트워크 설계 생명주기 검증** | ✅ 완료 |
+| | 10 | **Kubernetes** | **로컬 K8s Pod · Deployment · Service 배포** | 🚀 준비 완료 |
 | | 11 | Monitoring | 메트릭·로그 수집 | ⏳ 대기 |
 | | 12 | GitOps · HA | 배포 상태 및 장애 복구 검증 | ⏳ 대기 |
 
@@ -47,10 +47,13 @@ cloud-computing-practice/
 ├── 06-cloud-security/         # 06단계: IAM · Security Group · NACL 보안 PoC
 ├── 07-compose-network/        # 07단계: Docker Compose 멀티 컨테이너 네트워크 PoC
 ├── 08-ci-actions/             # 08단계: CI/CD GitHub Actions 자동 테스트 및 Docker 빌드 PoC
-│   ├── app.py                 # CI 검증용 웹 API 애플리케이션
-│   ├── test_app.py            # 자동화 단위 테스트 (3건)
-│   ├── Dockerfile             # 컨테이너 이미지 빌드 명세
-│   └── README.md              # 08단계 실습 안내서
-└── 09-terraform/              # 09단계: Terraform & IaC 실습 준비
-    └── README.md              # 09단계 안내서
+├── 09-terraform-iac/          # 09단계: Terraform IaC State 및 네트워크 라이프사이클 PoC
+│   ├── main.tf                # VPC 및 서브넷 논리적 리소스 명세
+│   ├── variables.tf           # 환경 변수 및 validation 규칙
+│   ├── outputs.tf             # network_plan 출력값 정의
+│   ├── tests/                 # 자동화 테스트 명세 (3개 run 블록)
+│   ├── docs/                  # 학습 기록 (learning-log.md)
+│   └── README.md              # 09단계 실습 안내서
+└── 10-kubernetes/             # 10단계: Kubernetes 아키텍처 및 서비스 실습 준비
+    └── README.md              # 10단계 안내서
 ```

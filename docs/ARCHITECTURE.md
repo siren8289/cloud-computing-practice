@@ -434,3 +434,56 @@ flowchart TD
 | **Job 1** | `python-tests` | 런타임 의존성 구성 및 단위 테스트를 수행하여 코드 로직의 결함을 1차 방어 |
 | **Job 2** | `docker-build` | `needs: python-tests`로 선행 작업 통과 시에만 컨테이너 불변 이미지 패키징 및 스모크 테스트 수행 |
 | **Permissions** | `contents: read` | 불필요한 쓰기/관리자 권한을 배제하여 토큰 탈취 시 저장소 변조 위협을 차단 |
+
+
+---
+
+## [2026-10-24] 09단계: Terraform Infrastructure as Code (IaC) 라이프사이클 아키텍처
+
+### 1. 설계 목적
+클라우드 인프라 자원을 웹 콘솔에서 수동 클릭으로 구성하던 전통적 방식에서 벗어나, 선언적 설정 언어(HCL)로 인프라의 형상을 코드로 정의하고 버전 관리하는 **Infrastructure as Code (IaC)** 패러다임을 확립합니다.
+- **내장 시뮬레이션(`terraform_data`)**: 비용과 외부 인증 없이도 Terraform의 핵심 엔진(의존성 그래프 해석, State 생성/비교/갱신, 드리프트 감지, 멱등성)을 완전히 검증합니다.
+- **의존성 그래프(Dependency Graph)**: 서브넷이 부모 VPC의 식별자(`terraform_data.vpc.input.name`)를 참조하여 생성 순서(VPC 생성 -> 서브넷 생성)를 스스로 판별하도록 유도합니다.
+
+### 2. Terraform 실행 라이프사이클 및 State 관리 아키텍처 (Mermaid)
+
+```mermaid
+flowchart TD
+    subgraph ConfigLayer ["인프라 코드 (HCL)"]
+        MainTf["main.tf (VPC & Subnet 선언)"]
+        VarsTf["variables.tf (env: dev/stage/prod)"]
+        TestHcl["tests/network.tftest.hcl (3대 단언문)"]
+    end
+
+    subgraph EngineLayer ["Terraform CLI 엔진"]
+        InitStep["1. terraform init<br>(백엔드 & 프로바이더 초기화)"]
+        ValidateStep["2. terraform validate / test<br>(구문 분석 & 3개 테스트 통과)"]
+        PlanStep["3. terraform plan<br>(코드 vs State 비교 -> 변경 계획 계산)"]
+        ApplyStep["4. terraform apply<br>(리소스 프로비저닝)"]
+        DestroyStep["5. terraform destroy<br>(리소스 안전 제거)"]
+    end
+
+    subgraph StateLayer ["상태 저장소 (State)"]
+        TfState[("terraform.tfstate<br>(실제 인프라 상태 매핑 DB)")]
+    end
+
+    MainTf --> InitStep
+    VarsTf --> InitStep
+    InitStep --> ValidateStep
+    ValidateStep --> PlanStep
+    PlanStep <-->|상태 동기화 & 차이 비교| TfState
+    PlanStep --> ApplyStep
+    ApplyStep -->|생성/수정 이력 기록| TfState
+    ApplyStep --> DestroyStep
+    DestroyStep -->|리소스 정보 삭제| TfState
+```
+
+### 3. Terraform 핵심 개념 및 실무 매트릭스
+
+| 개념 | 기술 요소 | 핵심 역할 및 실무 의미 |
+| :--- | :--- | :--- |
+| **HCL & locals** | `cidrsubnet(10.0.0.0/16, 8, 1)` | 수식과 함수를 통해 VPC 주소를 공용/사설 서브넷으로 자동 분할 계산 |
+| **Dependency** | `parent_vpc = terraform_data.vpc...` | 명시적/암시적 참조를 통해 리소스 생성 및 삭제 순서(DAG 그래프)를 자동 결정 |
+| **State** | `terraform.tfstate` | 코드와 실제 자원의 매핑 정보를 보관하는 진실의 원천(Source of Truth)으로 Git에 미포함 필수 |
+| **Idempotency** | `No changes.` | 코드가 바뀌지 않았다면 여러 번 `apply`를 수행해도 시스템 상태가 불필요하게 변경되지 않는 성질 |
+| **Automated Test** | `terraform test` | 실제 클라우드 과금 없이 `command = plan` 기반으로 CIDR 일치 및 환경 레이블을 검증 |

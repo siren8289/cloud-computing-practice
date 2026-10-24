@@ -4,6 +4,41 @@
 
 ---
 
+## [2026-10-24 20:30] 09단계: Terraform IaC State 및 네트워크 설계 생명주기 검증
+- **작업 목적**: Terraform HCL 코드 구문 분석, 3대 단위 테스트(`tftest.hcl`), 리소스 State 생성(`apply`), 멱등성 검증, 리소스 완전 파괴(`destroy`) 전수 검증
+- **테스트 환경**: macOS (darwin_arm64), Terraform v1.17.0
+- **테스트 대상**: `09-terraform-iac/main.tf`, `variables.tf`, `outputs.tf`, `tests/network.tftest.hcl`
+- **테스트 명령어**:
+  ```zsh
+  cd 09-terraform-iac
+  terraform init
+  terraform fmt -check -recursive
+  terraform validate
+  terraform test
+  terraform plan -out=study.tfplan
+  terraform apply study.tfplan
+  terraform state list
+  terraform output -json network_plan
+  terraform plan
+  terraform plan -var='environment=stage'
+  terraform destroy -auto-approve
+  terraform state list
+  ```
+- **Terraform 테스트 결과**: 총 3건 중 3건 성공 (`Success! 3 passed, 0 failed.`)
+  - [PASS] `subnet_cidrs`: public(`10.0.1.0/24`), private(`10.0.2.0/24`) 서브넷 CIDR 정확성 확인
+  - [PASS] `resource_dependency`: 서브넷의 `parent_vpc`가 `dev-study-vpc`를 정상 참조 확인
+  - [PASS] `production_label`: `environment=prod` 변수 주입 시 `prod-study-vpc` 반영 확인
+- **라이프사이클 및 멱등성 검증 결과**:
+  - `terraform apply`: `Resources: 3 added, 0 changed, 0 destroyed.` 확인
+  - `terraform output -json network_plan`: JSON 출력 정상 확인
+  - 멱등성 검증(`terraform plan`): `No changes. Your infrastructure matches the configuration.` 확인
+  - 환경 변경 계획(`-var='environment=stage'`): `Plan: 0 to add, 3 to change, 0 to destroy.` 확인
+  - `terraform destroy`: `Destroy complete! Resources: 3 destroyed.`, State 리소스 0개 확인
+- **미검증 항목**: 없음 (로컬 CLI 환경에서 전체 수명주기 100% 실행 검증 완료)
+- **Commit Hash**: `f545c96` (`feat(09-terraform): IaC State 및 네트워크 설계 PoC`)
+
+---
+
 ## [2026-10-24 20:21] 08단계: CI/CD Pipeline & GitHub Actions 자동 테스트 및 빌드 검증
 - **작업 목적**: GitHub Actions 워크플로의 파이프라인(단위 테스트, 의존성 제어, Docker 이미지 빌드, 컨테이너 스모크 테스트) 로컬 및 원격 검증
 - **테스트 대상**: `.github/workflows/cloud-ci.yml`, `08-ci-actions/app.py`, `08-ci-actions/test_app.py`, `08-ci-actions/Dockerfile`

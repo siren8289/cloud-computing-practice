@@ -4,6 +4,48 @@
 
 ---
 
+## [2026-10-24 20:30] feat(09-terraform): IaC State 및 네트워크 설계 PoC
+- **작업 목적**:
+  - Terraform v1.17.0 기반의 `terraform_data` 리소스를 활용한 논리적 네트워크(VPC, Public/Private Subnet) HCL 선언
+  - `cidrsubnet()` 함수를 활용한 서브넷 주소 자동 분할 및 리소스 간 부모-자식 의존성(Dependency Graph) 구성
+  - `terraform test`를 통한 Plan 단언문 3건(`subnet_cidrs`, `resource_dependency`, `production_label`) 자동화 검증
+  - `terraform apply`를 통한 State 생성, `terraform plan`을 통한 멱등성 검증, `terraform destroy`를 통한 클린업
+  - 10단계 Kubernetes 실습을 위한 사전 디렉터리(`10-kubernetes/`) 준비
+- **변경 파일**:
+  - `09-terraform-iac/main.tf` (신규)
+  - `09-terraform-iac/variables.tf` (신규)
+  - `09-terraform-iac/outputs.tf` (신규)
+  - `09-terraform-iac/.gitignore` (신규)
+  - `09-terraform-iac/tests/network.tftest.hcl` (신규)
+  - `09-terraform-iac/docs/learning-log.md` (신규)
+  - `09-terraform-iac/README.md` (신규)
+  - `10-kubernetes/README.md` (신규 - 10단계 준비)
+  - `README.md` (갱신)
+  - `docs/ARCHITECTURE.md` (갱신)
+  - `docs/DEV_LOG.md` (갱신)
+  - `docs/TEST_LOG.md` (갱신)
+- **실행 명령어**:
+  - `terraform init`
+  - `terraform fmt -check -recursive`
+  - `terraform validate`
+  - `terraform test`
+  - `terraform plan -out=study.tfplan`
+  - `terraform apply study.tfplan`
+  - `terraform state list`
+  - `terraform output -json network_plan`
+  - `terraform plan` (멱등성 확인)
+  - `terraform plan -var='environment=stage'` (변경 계산 확인)
+  - `terraform destroy -auto-approve`
+- **검증 및 테스트 결과**:
+  - `terraform validate`: Success (`The configuration is valid.`)
+  - `terraform test`: Success! 3 passed, 0 failed (3건 전수 통과)
+  - `terraform apply`: Resources: 3 added, 0 changed, 0 destroyed
+  - 멱등성 확인: `No changes. Your infrastructure matches the configuration.`
+  - `terraform destroy`: Resources: 3 destroyed 완료
+- **Commit Hash**: `f545c96` (`feat(09-terraform): IaC State 및 네트워크 설계 PoC`)
+
+---
+
 ## [2026-10-24 20:21] feat(08-ci): GitHub Actions 자동 테스트 및 Docker 빌드
 - **작업 목적**:
   - GitHub Actions 워크플로(`.github/workflows/cloud-ci.yml`) 작성을 통한 CI(지속적 통합) 자동화 파이프라인 구축
