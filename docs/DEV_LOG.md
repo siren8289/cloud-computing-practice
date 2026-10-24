@@ -4,6 +4,54 @@
 
 ---
 
+## [2026-10-24 21:10] feat(11-observability): Prometheus Grafana 모니터링 PoC
+- **작업 목적**:
+  - Prometheus Python 클라이언트를 활용한 Counter(`http_requests_total`) 및 Histogram(`http_request_duration_seconds`) 메트릭 계측
+  - Prometheus(v3.5.0)의 5초 주기 Pull Scrape 및 TSDB 시계열 데이터 저장 파이프라인 구축
+  - Grafana(12.1.1) 데이터소스 및 대시보드(`cloud.json`) Provisioning as Code 자동화
+  - 트래픽 부하 생성(정상 60건, 오류 5건)을 통한 실시간 PromQL(RPS, 5xx 비율, P95 Latency) 관측 검증
+  - 12단계 GitOps · Argo CD · HA 최종 실습을 위한 사전 디렉터리(`12-gitops-ha/`) 준비
+- **변경 파일**:
+  - `11-observability-lab/compose.yaml` (신규)
+  - `11-observability-lab/app/main.py` (신규)
+  - `11-observability-lab/app/requirements.txt` (신규)
+  - `11-observability-lab/app/Dockerfile` (신규)
+  - `11-observability-lab/prometheus/prometheus.yml` (신규)
+  - `11-observability-lab/grafana/provisioning/datasources/prometheus.yml` (신규)
+  - `11-observability-lab/grafana/provisioning/dashboards/dashboard.yml` (신규)
+  - `11-observability-lab/grafana/dashboards/cloud.json` (신규)
+  - `11-observability-lab/tests/test_app.py` (신규)
+  - `11-observability-lab/docs/learning-log.md` (신규)
+  - `11-observability-lab/.gitignore` (신규)
+  - `11-observability-lab/README.md` (신규)
+  - `12-gitops-ha/README.md` (신규 - 12단계 준비)
+  - `README.md` (갱신)
+  - `docs/ARCHITECTURE.md` (갱신)
+  - `docs/DEV_LOG.md` (갱신)
+  - `docs/TEST_LOG.md` (갱신)
+- **실행 명령어**:
+  - `python3 -m unittest discover -s tests -p 'test_*.py' -v`
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `curl -i http://127.0.0.1:8081/health`
+  - `curl -i http://127.0.0.1:8081/work`
+  - `curl -i http://127.0.0.1:8081/error`
+  - `curl -s http://127.0.0.1:8081/metrics`
+  - 트래픽 부하 발생 (60 work, 5 error)
+  - `curl -s http://127.0.0.1:9090/api/v1/targets`
+  - `curl -s http://127.0.0.1:3000/api/health`
+  - `curl -s 'http://127.0.0.1:9090/api/v1/query?query=sum(http_requests_total)'`
+  - `docker compose down -v`
+- **검증 및 테스트 결과**:
+  - Python 단위 테스트 4건 전수 통과 (`Ran 4 tests in 0.595s - OK`)
+  - Docker Compose 3대 컨테이너(api, prometheus, grafana) 정상 기동 확인
+  - Prometheus target 상태 `"health":"up"` 및 TSDB 쿼리 `sum(http_requests_total) = 68` 정확 일치 확인
+  - Grafana 12.1.1 헬스체크 ok 및 대시보드 자동 프로비저닝 완료 확인
+  - 리소스 정리: `docker compose down -v` 완료
+- **Commit Hash**: `35acf39` (`feat(11-observability): Prometheus Grafana 모니터링 PoC`)
+
+---
+
 ## [2026-10-24 20:45] feat(10-k8s): Pod Deployment Service 및 장애 복구 PoC
 - **작업 목적**:
   - kind(v0.33.0) 로컬 Kubernetes 클러스터 상에 Python HTTP 서버(`cloud-api:v1`) 배포

@@ -19,9 +19,9 @@
 | | 07 | Docker · Compose | 멀티 컨테이너 서비스 DNS 및 네트워크 검증 | ✅ 완료 |
 | | 08 | CI/CD | GitHub Actions 자동 테스트 및 Docker 빌드 | ✅ 완료 |
 | **심화** | 09 | Terraform | IaC State 및 네트워크 설계 생명주기 검증 | ✅ 완료 |
-| | 10 | **Kubernetes** | **로컬 K8s Pod · Deployment · Service 배포 및 자가 치유** | ✅ 완료 |
-| | 11 | **Monitoring** | **Prometheus 메트릭 및 관측 가능성(Observability)** | 🚀 준비 완료 |
-| | 12 | GitOps · HA | 배포 상태 및 장애 복구 검증 | ⏳ 대기 |
+| | 10 | Kubernetes | 로컬 K8s Pod · Deployment · Service 배포 및 자가 치유 | ✅ 완료 |
+| | 11 | **Monitoring** | **Prometheus 메트릭 및 Grafana 관측 가능성(Observability)** | ✅ 완료 |
+| | 12 | **GitOps · HA** | **Argo CD 선언형 배포 및 고가용성(High Availability)** | 🚀 준비 완료 |
 
 ---
 
@@ -49,12 +49,14 @@ cloud-computing-practice/
 ├── 08-ci-actions/             # 08단계: CI/CD GitHub Actions 자동 테스트 및 Docker 빌드 PoC
 ├── 09-terraform-iac/          # 09단계: Terraform IaC State 및 네트워크 라이프사이클 PoC
 ├── 10-kubernetes-lab/         # 10단계: Kubernetes Deployment, Service, Self-Healing PoC
-│   ├── app/                   # Python HTTP 서버 및 비루트 Dockerfile
-│   ├── k8s/                   # Deployment 및 ClusterIP Service YAML 명세
-│   ├── tests/                 # 자동화 단위 테스트 (/health, /, /missing)
-│   ├── docs/                  # 학습 및 실행 로그 (learning-log.md)
-│   ├── verify.sh              # 클러스터 내부 DNS, 엔드포인트 종합 검증 스크립트
-│   └── README.md              # 10단계 실습 안내서
-└── 11-observability/          # 11단계: Observability & Monitoring 실습 준비
-    └── README.md              # 11단계 안내서
+├── 11-observability-lab/      # 11단계: Prometheus · Grafana Observability 모니터링 PoC
+│   ├── compose.yaml           # API, Prometheus, Grafana 컨테이너 오케스트레이션
+│   ├── app/                   # Counter & Histogram 메트릭 계측 Python API
+│   ├── prometheus/            # 5초 주기 스크랩(Scrape) 설정
+│   ├── grafana/               # 데이터소스 및 RPS/Error Rate/P95 대시보드 프로비저닝
+│   ├── tests/                 # 4대 자동화 단위 테스트
+│   ├── docs/                  # 학습 및 검증 로그 (learning-log.md)
+│   └── README.md              # 11단계 실습 안내서
+└── 12-gitops-ha/              # 12단계: GitOps · Argo CD · HA 최종 실습 준비
+    └── README.md              # 12단계 안내서
 ```

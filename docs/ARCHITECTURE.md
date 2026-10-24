@@ -555,3 +555,67 @@ flowchart TD
 | **Readiness Probe** | `httpGet: /health`, `period: 2s` | 컨테이너가 트래픽을 처리할 준비가 되었는지 검사하여, 실패 시 엔드포인트에서 임시 제외 |
 | **ClusterIP Service** | `port: 8081`, `targetPort: 8081` | 클러스터 내부 사설 가상 IP 및 DNS 이름을 제공하여 Pod IP 교체에도 무중단 통신 보장 |
 | **EndpointSlice** | `discovery.k8s.io` | Service와 매핑된 정상 Pod IP 목록을 대규모 클러스터에서도 효율적으로 분산 추적 |
+
+
+---
+
+## [2026-10-24] 11단계: Cloud Observability & Prometheus · Grafana 모니터링 아키텍처
+
+### 1. 설계 목적
+분산 클라우드 환경에서 시스템 내부의 블랙박스 상태를 투명하게 관찰할 수 있도록, **관측 가능성 3요소(Metrics, Logs, Traces)** 중 핵심인 시계열 메트릭 파이프라인을 구축합니다.
+- **표준 메트릭 노출 (`GET /metrics`)**: 애플리케이션 내부에서 `Counter`(누적 요청/오류 건수)와 `Histogram`(응답 지연 시간 분포)을 기록하고 Prometheus 오픈 표준 텍스트 포맷으로 노출합니다.
+- **능동적 수집 (Pull Model)**: Prometheus가 5초마다 API 엔드포인트를 호출(Scrape)하여 시계열 데이터베이스(TSDB)에 수집·저장합니다.
+- **코드 기반 프로비저닝 (Provisioning as Code)**: Grafana의 데이터소스(`Prometheus`)와 대시보드(`cloud.json`)를 수동 클릭 없이 YAML/JSON 코드로 자동 구성하여 RPS, 5xx 오류율, P95 레이턴시를 실시간 시각화합니다.
+
+### 2. 관측 가능성 파이프라인 및 데이터 흐름 (Mermaid)
+
+```mermaid
+flowchart TD
+    subgraph ClientLayer ["외부 클라이언트 트래픽"]
+        UserReq["curl /work (지연 요청)<br>curl /error (500 에러)<br>curl /health (정상 요청)"]
+    end
+
+    subgraph AppContainer ["Python HTTP API 컨테이너 (:8081)"]
+        Handler["Handler.do_GET()"]
+        Timer["time.perf_counter() 소요 시간 측정"]
+        CounterMetric["http_requests_total<br>(labels: method, route, status)"]
+        HistoMetric["http_request_duration_seconds<br>(buckets: 0.005s ~ 5s)"]
+        MetricsEndpoint["GET /metrics<br>(generate_latest())"]
+    end
+
+    subgraph MonitoringStack ["모니터링 인프라 (Docker Compose: monitoring 브리지)"]
+        subgraph PromServer ["Prometheus Server (:9090)"]
+            Scraper["5s 주기 Pull Scraper"]
+            TSDB[("Prometheus TSDB<br>(시계열 데이터 저장소)")]
+        end
+
+        subgraph GrafanaServer ["Grafana Dashboard (:3000)"]
+            Dashboard["Cloud Observability Lab"]
+            QueryRPS["Panel 1: 초당 요청 수 (RPS)<br>sum(rate(http_requests_total[1m]))"]
+            QueryErr["Panel 2: 5xx 오류 비율<br>sum(rate(...status=~'5..'...))"]
+            QueryP95["Panel 3: P95 지연 시간<br>histogram_quantile(0.95, sum by (le) (...))"]
+        end
+    end
+
+    UserReq --> Handler
+    Handler --> Timer
+    Timer --> CounterMetric
+    Timer --> HistoMetric
+    CounterMetric --> MetricsEndpoint
+    HistoMetric --> MetricsEndpoint
+
+    Scraper -->|5s마다 GET /metrics 풀링| MetricsEndpoint
+    Scraper -->|시계열 저장| TSDB
+
+    Dashboard --> QueryRPS --> TSDB
+    Dashboard --> QueryErr --> TSDB
+    Dashboard --> QueryP95 --> TSDB
+```
+
+### 3. 핵심 3대 골든 시그널(Golden Signals) 매트릭스
+
+| 지표 | 수집 메트릭 | PromQL 쿼리 | 실무 분석 의의 |
+| :--- | :--- | :--- | :--- |
+| **요청량 (Traffic)** | `http_requests_total` | `sum(rate(http_requests_total[1m]))` | 시스템에 유입되는 초당 요청 수(RPS) 변화 및 트래픽 폭주 감지 |
+| **오류율 (Errors)** | `http_requests_total{status=~"5.."}` | `sum(rate(...status=~"5.."..)) / rate(total..)` | 서비스 장애 및 백엔드 예외 발생 빈도를 백분율로 추적하여 경보(Alert) 발송 |
+| **지연 시간 (Latency)** | `http_request_duration_seconds` | `histogram_quantile(0.95, sum by (le) (rate(...)))` | 전체 사용자 중 95%가 체감하는 응답 지연 한계선(P95)을 측정하여 병목 구간 탐지 |

@@ -4,6 +4,44 @@
 
 ---
 
+## [2026-10-24 21:10] 11단계: Cloud Observability & Prometheus · Grafana 모니터링 통합 검증
+- **작업 목적**: Python API 메트릭 계측(Counter, Histogram), Prometheus 5초 Scrape 및 TSDB 쿼리, Grafana 대시보드 자동 프로비저닝 전수 검증
+- **테스트 환경**: macOS (darwin_arm64), Docker Desktop, Prometheus v3.5.0, Grafana 12.1.1
+- **테스트 대상**: `11-observability-lab/app/`, `11-observability-lab/compose.yaml`, `prometheus/`, `grafana/`
+- **테스트 명령어**:
+  ```zsh
+  cd 11-observability-lab
+  python3 -m unittest discover -s tests -p 'test_*.py' -v
+  docker compose up -d --build
+  docker compose ps
+  curl -i http://127.0.0.1:8081/health
+  curl -i http://127.0.0.1:8081/work
+  curl -i http://127.0.0.1:8081/error
+  curl -s http://127.0.0.1:8081/metrics
+  # 부하 트래픽 생성
+  for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:8081/work; done
+  for i in $(seq 1 5); do curl -s -o /dev/null http://127.0.0.1:8081/error; done
+  curl -s http://127.0.0.1:9090/api/v1/targets
+  curl -s http://127.0.0.1:3000/api/health
+  curl -s 'http://127.0.0.1:9090/api/v1/query?query=sum(http_requests_total)'
+  docker compose down -v
+  ```
+- **테스트 및 검증 결과**:
+  - [PASS] Python 단위 테스트: 4건 전수 통과 (`Ran 4 tests in 0.595s - OK`)
+    - `test_health`: 200 OK 및 `{"status": "ok"}` 확인
+    - `test_metrics_counter`: `/work` 호출 후 `http_requests_total` 증가 확인
+    - `test_error_metric`: `/error` 호출 시 500 반환 및 `status="500"` 레이블 확인
+    - `test_histogram`: `http_request_duration_seconds_bucket` 버킷 관측 확인
+  - [PASS] Docker Compose 기동: `api`, `prometheus`, `grafana` 3대 컨테이너 정상 기동
+  - [PASS] Prometheus Target 상태: `"health":"up"` 확인 (5s 주기 정상 스크랩)
+  - [PASS] TSDB 메트릭 쿼리: `sum(http_requests_total) = 68` 정확 일치 확인
+  - [PASS] Grafana 헬스체크: `{"database": "ok", "version": "12.1.1"}` 확인
+  - [PASS] 리소스 정리: `docker compose down -v` 완료
+- **미검증 항목**: 없음 (로컬 Docker Compose 환경에서 메트릭 수집 및 TSDB 쿼리 100% 실행 검증 완료)
+- **Commit Hash**: `35acf39` (`feat(11-observability): Prometheus Grafana 모니터링 PoC`)
+
+---
+
 ## [2026-10-24 20:45] 10단계: Kubernetes Deployment · Service · Self-Healing · RollingUpdate 통합 검증
 - **작업 목적**: kind 로컬 클러스터 기반 Python HTTP 서버 배포, ClusterIP 내부 라우팅, Pod 장애 복구(Self-Healing), 롤링 업데이트 전수 검증
 - **테스트 환경**: macOS (darwin_arm64), Docker Desktop, kind v0.33.0, kubectl v1.37.1
