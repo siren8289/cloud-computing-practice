@@ -30,10 +30,23 @@
   - `git add 12-gitops-argocd README.md docs/`
   - `git commit -m "feat(12-gitops): Argo CD 자동 동기화 및 복구 PoC"`
   - `git push origin main`
+  - `kind create cluster --name cloud-study --wait 120s`
+  - `kubectl apply --server-side --force-conflicts -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml`
+  - `kubectl wait --for=condition=available deployment/argocd-server -n argocd --timeout=300s`
+  - `kubectl apply -f application.yaml`
+  - `kubectl wait --for=condition=available deployment/web -n gitops-lab --timeout=120s`
+  - `bash verify.sh`
+  - `kubectl scale deployment/web -n gitops-lab --replicas=1` (Drift 발생 및 Argo CD Self-Heal 검증)
+  - `kubectl delete pod "$TARGET_POD" -n gitops-lab` (ReplicaSet Pod 재생성 검증)
+  - `kind delete cluster --name cloud-study`
 - **검증 및 테스트 결과**:
   - 매니페스트 정적 단위 테스트 3건 전수 통과 (`Ran 3 tests in 0.001s - OK`)
-  - Git Push 후 Argo CD Application 원격 읽기 및 동기화 기반 준비 완료
-- **Commit Hash**: `PENDING` (`feat(12-gitops): Argo CD 자동 동기화 및 복구 PoC`)
+  - Git Push 후 Argo CD가 원격 GitHub 저장소를 폴링하여 `cloud-gitops-lab` Application을 `Synced` & `Healthy` 상태로 전환
+  - `verify.sh`를 통해 내부 클러스터 네트워크에서 Service ClusterIP:80 호출 성공 및 Nginx HTTP 200 수신
+  - **Argo CD Self-Heal 성공**: 수동으로 `replicas: 1`로 축소하자 Argo CD가 2초 만에 감지하고 Git 선언값인 `replicas: 2`로 자동 원복
+  - **Kubernetes Pod 복구 성공**: 실행 중인 Pod 강제 삭제 시 ReplicaSet이 즉시 신규 Pod를 기동하여 2/2 Ready 복구 완료
+  - 리소스 정리: kind 클러스터 완전 삭제 완료
+- **Commit Hash**: `9826355` (`feat(12-gitops): Argo CD 자동 동기화 및 복구 PoC`)
 
 ---
 

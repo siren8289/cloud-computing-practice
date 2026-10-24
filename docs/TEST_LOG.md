@@ -6,19 +6,35 @@
 
 ## [2026-10-24 21:18] 12단계: GitOps · Argo CD · High Availability (HA) 최종 검증
 - **작업 목적**: Kustomize 매니페스트 번들링 및 Argo CD Application 정책(자동 동기화, Self-Heal, Prune 비활성화) 유효성 검증
-- **테스트 환경**: macOS (darwin_arm64), Python 3.11 unittest
-- **테스트 대상**: `12-gitops-argocd/application.yaml`, `12-gitops-argocd/k8s/`
+- **테스트 환경**: macOS (darwin_arm64), Python 3.11 unittest, Docker Desktop, kind v0.31.0, Kubernetes v1.37.0, Argo CD stable
+- **테스트 대상**: `12-gitops-argocd/application.yaml`, `12-gitops-argocd/k8s/`, `verify.sh`, live cluster
 - **테스트 명령어**:
   ```zsh
   cd 12-gitops-argocd
   python3 -m unittest discover -s tests -p "test_*.py" -v
+  git push origin main
+  kind create cluster --name cloud-study --wait 120s
+  kubectl apply --server-side --force-conflicts -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+  kubectl wait --for=condition=available deployment/argocd-server -n argocd --timeout=300s
+  kubectl apply -f application.yaml
+  kubectl wait --for=condition=available deployment/web -n gitops-lab --timeout=120s
+  bash verify.sh
+  kubectl --context kind-cloud-study -n gitops-lab scale deployment/web --replicas=1
+  # Argo CD Drift 자동 복구 대기
+  kubectl --context kind-cloud-study -n gitops-lab delete pod "$TARGET_POD"
+  # Kubernetes Pod 재생성 대기
+  kind delete cluster --name cloud-study
   ```
 - **테스트 및 검증 결과**:
   - [PASS] `test_deployment_replica_and_readiness`: Deployment `replicas: 2`, `readinessProbe`, `maxUnavailable: 0` 무중단 전략 검증 완료
   - [PASS] `test_service_selector`: Service `app: gitops-web` 셀렉터 및 `ClusterIP` 일치 검증 완료
   - [PASS] `test_argocd_policy_and_repo`: `selfHeal: true`, `enabled: true`, `prune: false`, `repoURL` 및 대상 경로(`12-gitops-argocd/k8s`) 검증 완료
-- **미검증 항목**: Argo CD 실제 컨트롤러 배포 및 Drift Self-Heal은 Git Push 선행 후 로컬 kind 클러스터 상에서 연동 가능 (Argo CD가 원격 GitHub 저장소를 참조하므로 1차 Git Push 필수)
-- **Commit Hash**: `PENDING` (`feat(12-gitops): Argo CD 자동 동기화 및 복구 PoC`)
+  - [PASS] `verify.sh`: ClusterIP 80 포트를 통한 HTTP 200 Nginx 응답 정상 수신 확인
+  - [PASS] **Argo CD Drift Self-Heal**: `kubectl scale deployment/web --replicas=1` 실행 직후 Argo CD가 2초 내 드리프트를 감지하여 Git 선언 상태(`replicas: 2`)로 자동 롤백 복구 성공
+  - [PASS] **Kubernetes Pod 자가 치유**: 실행 중인 Pod(`web-d6b9b7466-cssjg`) 강제 삭제 시 ReplicaSet이 즉시 신규 Pod(`web-d6b9b7466-64s2w`)를 기동하여 2/2 Ready 복구 성공
+  - [PASS] **클러스터 클린업**: kind 클러스터 완전 삭제 완료
+- **미검증 항목**: 없음 (매니페스트 정적 검증부터 실제 K8s + Argo CD 클러스터 자동 동기화, Drift Self-Heal, 장애 복구 전 과정 100% 검증 완료)
+- **Commit Hash**: `9826355` (`feat(12-gitops): Argo CD 자동 동기화 및 복구 PoC`)
 
 ---
 

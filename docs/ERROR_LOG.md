@@ -4,6 +4,27 @@
 
 ---
 
+## [2026-10-24] Argo CD CRD 적용 시 metadata.annotations Too long (262144 bytes) 초과 및 해결
+- **발생 상황 / 실행 명령어**: `kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml`
+- **오류 로그**:
+  ```text
+  The CustomResourceDefinition "applicationsets.argoproj.io" is invalid: metadata.annotations: Too long: may not be more than 262144 bytes
+  ```
+- **원인 분석**:
+  - `kubectl apply`를 기본 클라이언트 사이드(Client-Side) 모드로 실행하면 직전 매니페스트 전체를 JSON 문자열로 직렬화하여 리소스의 `kubectl.kubernetes.io/last-applied-configuration` 어노테이션에 저장합니다.
+  - Argo CD의 `applicationsets.argoproj.io`와 같은 거대 CRD는 매니페스트 본문 크기가 Kubernetes 어노테이션 최대 허용 한도인 256KB(262,144 bytes)를 초과하여 거부됩니다.
+- **해결 방법**:
+  - 클라이언트 사이드 어노테이션을 기록하지 않고 Kubernetes API 서버가 직접 필드 소유권을 관리하는 서버사이드 어플라이(`--server-side --force-conflicts`) 플래그를 사용하여 설치:
+    ```zsh
+    kubectl apply --server-side --force-conflicts -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+    ```
+- **재검증 결과**:
+  - 모든 CRD, Deployment, ServiceAccount, ConfigMap이 충돌 없이 정상 생성 완료.
+  - `kubectl wait --for=condition=available deployment/argocd-server -n argocd` 정상 완료 확인.
+- **관련 커밋**: `feat(12-gitops): Argo CD 자동 동기화 및 복구 PoC`
+
+---
+
 ## [2026-10-24] Docker 컨테이너 구동 직후 스모크 테스트 시 RemoteDisconnected 발생 및 해결
 - **발생 상황 / 실행 명령어**: `docker run -d ... && python3 -c "urllib.request.urlopen(...)"`
 - **오류 로그**:
